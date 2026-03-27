@@ -1,0 +1,26 @@
+import axios from 'axios'
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL?.trim() || 'https://localhost:7194'
+
+export const httpClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+httpClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('[HTTP_ERROR]', {
+      url: error?.config?.url,
+      method: error?.config?.method,
+      status: error?.response?.status,
+      data: error?.response?.data,
+      message: error?.message,
+    })
+    return Promise.reject(error)
+  },
+)

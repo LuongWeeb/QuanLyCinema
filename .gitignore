@@ -1,0 +1,30 @@
+# Build artifacts
+**/bin/
+**/obj/
+Frontend/dist/
+
+# Dependencies
+**/node_modules/
+
+# IDE and local settings
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs and temp files
+*.log
+*.tmp
+~$*
+
+# Environment files
+.env
+.env.*
+Frontend/.env
+Frontend/.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
