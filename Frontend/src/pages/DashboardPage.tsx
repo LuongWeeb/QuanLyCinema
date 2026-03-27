@@ -6,6 +6,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons'
 import { Card, Col, Layout, Row, Space, Statistic, Tag, Typography } from 'antd'
+import { UserRoleManagementCard } from '../components/admin/UserRoleManagementCard'
 import { UserDropdown } from '../components/common/UserDropdown'
 import type { LoginResponse } from '../types/auth'
 
@@ -90,17 +91,30 @@ export function DashboardPage({ currentUser, onLogout }: DashboardPageProps) {
           <Row gutter={[16, 16]} style={{ marginBottom: 14 }}>
             <Col xs={24} sm={8}>
               <Card className="cinema-card">
-                <Statistic title="Rạp đang hoạt động" value={4} valueStyle={{ color: '#d6e4ff' }} />
+                <Statistic
+                  title="Rạp đang hoạt động"
+                  value={4}
+                  styles={{ content: { color: '#d6e4ff' } }}
+                />
               </Card>
             </Col>
             <Col xs={24} sm={8}>
               <Card className="cinema-card">
-                <Statistic title="Suất chiếu hôm nay" value={28} valueStyle={{ color: '#d6e4ff' }} />
+                <Statistic
+                  title="Suất chiếu hôm nay"
+                  value={28}
+                  styles={{ content: { color: '#d6e4ff' } }}
+                />
               </Card>
             </Col>
             <Col xs={24} sm={8}>
               <Card className="cinema-card">
-                <Statistic title="Tỉ lệ đặt vé" value={82} suffix="%" valueStyle={{ color: '#d6e4ff' }} />
+                <Statistic
+                  title="Tỉ lệ đặt vé"
+                  value={82}
+                  suffix="%"
+                  styles={{ content: { color: '#d6e4ff' } }}
+                />
               </Card>
             </Col>
           </Row>
@@ -125,6 +139,10 @@ export function DashboardPage({ currentUser, onLogout }: DashboardPageProps) {
               </Col>
             ))}
           </Row>
+
+          <div style={{ marginTop: 16 }}>
+            <UserRoleManagementCard />
+          </div>
         </Content>
       </Layout>
     </Layout>

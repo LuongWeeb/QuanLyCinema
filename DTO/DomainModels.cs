@@ -1,12 +1,5 @@
 namespace DTO;
 
-public enum UserRole
-{
-    Admin = 1,
-    Staff = 2,
-    Customer = 3
-}
-
 public enum SeatStatus
 {
     Available = 1,
@@ -33,8 +26,26 @@ public class User
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
-    public UserRole Role { get; set; }
     public string FullName { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsLocked { get; set; }
+    public List<UserRole> UserRoles { get; set; } = new();
+}
+
+public class Role
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public List<UserRole> UserRoles { get; set; } = new();
+}
+
+public class UserRole
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public User User { get; set; } = null!;
+    public int RoleId { get; set; }
+    public Role Role { get; set; } = null!;
 }
 
 public class Movie

@@ -10,6 +10,8 @@ public class CinemaDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<Showtime> Showtimes => Set<Showtime>();
     public DbSet<Auditorium> Auditoriums => Set<Auditorium>();
@@ -22,10 +24,22 @@ public class CinemaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>().HasIndex(x => x.Username).IsUnique();
+        modelBuilder.Entity<Role>().HasIndex(x => x.Name).IsUnique();
+        modelBuilder.Entity<UserRole>().HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
         modelBuilder.Entity<Seat>().HasIndex(x => new { x.AuditoriumId, x.SeatCode }).IsUnique();
         modelBuilder.Entity<Ticket>().HasIndex(x => new { x.ReservationId, x.SeatId }).IsUnique();
         modelBuilder.Entity<Ticket>().HasIndex(x => new { x.ShowtimeId, x.SeatId }).IsUnique();
         modelBuilder.Entity<Ticket>().HasIndex(x => x.QrCode).IsUnique();
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(x => x.User)
+            .WithMany(x => x.UserRoles)
+            .HasForeignKey(x => x.UserId);
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(x => x.Role)
+            .WithMany(x => x.UserRoles)
+            .HasForeignKey(x => x.RoleId);
 
         modelBuilder.Entity<Reservation>()
             .HasMany(x => x.Tickets)

@@ -447,7 +447,7 @@ export function CustomerHomePage({ currentUser, onLogout }: CustomerHomePageProp
                   <Collapse
                     ghost
                     items={faqItems}
-                    expandIconPosition="end"
+                    expandIconPlacement="end"
                     style={{ color: '#c5d3ff' }}
                   />
                   <Typography.Text style={{ color: '#9fb3ff' }}>

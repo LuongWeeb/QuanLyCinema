@@ -2,7 +2,7 @@ import { Col, Layout, Row, Space, Statistic, message } from 'antd'
 import { useState } from 'react'
 import { LoginFormCard } from '../components/auth/LoginFormCard'
 import { LoginHeader } from '../components/auth/LoginHeader'
-import { login } from '../services/authService'
+import { login, register } from '../services/authService'
 import type { LoginResponse } from '../types/auth'
 import { mapApiError } from '../utils/error'
 
@@ -40,6 +40,30 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }
   }
 
+  async function handleRegister(values: {
+    fullName: string
+    username: string
+    password: string
+    confirmPassword: string
+  }) {
+    setLoading(true)
+    setErrorMessage(null)
+    try {
+      const msg = await register({
+        fullName: values.fullName.trim(),
+        username: values.username.trim(),
+        password: values.password,
+      })
+      api.success(msg)
+    } catch (error) {
+      const detail = mapApiError(error)
+      setErrorMessage(detail.message)
+      api.error(detail.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Layout className="login-layout">
       {contextHolder}
@@ -50,10 +74,18 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <LoginHeader />
               <Row gutter={12}>
                 <Col span={12}>
-                  <Statistic title="Vận hành hệ thống" value="24/7" valueStyle={{ color: '#d6e4ff' }} />
+                  <Statistic
+                    title="Vận hành hệ thống"
+                    value="24/7"
+                    styles={{ content: { color: '#d6e4ff' } }}
+                  />
                 </Col>
                 <Col span={12}>
-                  <Statistic title="Dịch vụ" value="Real-time" valueStyle={{ color: '#d6e4ff' }} />
+                  <Statistic
+                    title="Dịch vụ"
+                    value="Real-time"
+                    styles={{ content: { color: '#d6e4ff' } }}
+                  />
                 </Col>
               </Row>
             </Space>
@@ -63,7 +95,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <LoginFormCard
               loading={loading}
               errorMessage={errorMessage}
-              onSubmit={handleLogin}
+              onLogin={handleLogin}
+              onRegister={handleRegister}
             />
           </Col>
         </Row>

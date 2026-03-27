@@ -20,12 +20,39 @@ CREATE TABLE [dbo].[Users]
     [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [Username] NVARCHAR(450) NOT NULL,
     [PasswordHash] NVARCHAR(MAX) NOT NULL,
-    [Role] INT NOT NULL, -- 1=Admin, 2=Staff, 3=Customer
     [FullName] NVARCHAR(MAX) NOT NULL
 );
 GO
 
 CREATE UNIQUE INDEX [IX_Users_Username] ON [dbo].[Users]([Username]);
+GO
+
+-- Roles
+CREATE TABLE [dbo].[Roles]
+(
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [Name] NVARCHAR(450) NOT NULL
+);
+GO
+
+CREATE UNIQUE INDEX [IX_Roles_Name] ON [dbo].[Roles]([Name]);
+GO
+
+-- UserRoles
+CREATE TABLE [dbo].[UserRoles]
+(
+    [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [UserId] INT NOT NULL,
+    [RoleId] INT NOT NULL,
+    CONSTRAINT [FK_UserRoles_Users_UserId]
+        FOREIGN KEY ([UserId]) REFERENCES [dbo].[Users]([Id]),
+    CONSTRAINT [FK_UserRoles_Roles_RoleId]
+        FOREIGN KEY ([RoleId]) REFERENCES [dbo].[Roles]([Id])
+);
+GO
+
+CREATE UNIQUE INDEX [IX_UserRoles_UserId_RoleId]
+    ON [dbo].[UserRoles]([UserId], [RoleId]);
 GO
 
 -- Movies
@@ -147,12 +174,28 @@ CREATE TABLE [dbo].[Payments]
 );
 GO
 
--- Seed default users (password 123456, SHA256 uppercase hex)
-INSERT INTO [dbo].[Users] ([Username], [PasswordHash], [Role], [FullName])
+-- Seed default users and roles (password 123456, SHA256 uppercase hex)
+INSERT INTO [dbo].[Roles] ([Name])
 VALUES
-    (N'admin',    N'8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', 1, N'System Admin'),
-    (N'staff',    N'8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', 2, N'Ticket Staff'),
-    (N'customer', N'8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', 3, N'Default Customer');
+    (N'Admin'),
+    (N'Staff'),
+    (N'Customer');
+GO
+
+INSERT INTO [dbo].[Users] ([Username], [PasswordHash], [FullName])
+VALUES
+    (N'admin',    N'8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'System Admin'),
+    (N'staff',    N'8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Ticket Staff'),
+    (N'customer', N'8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92', N'Default Customer');
+GO
+
+INSERT INTO [dbo].[UserRoles] ([UserId], [RoleId])
+SELECT u.[Id], r.[Id]
+FROM [dbo].[Users] u
+JOIN [dbo].[Roles] r ON
+    (u.[Username] = N'admin' AND r.[Name] = N'Admin')
+    OR (u.[Username] = N'staff' AND r.[Name] = N'Staff')
+    OR (u.[Username] = N'customer' AND r.[Name] = N'Customer');
 GO
 
 -- Seed basic master data
