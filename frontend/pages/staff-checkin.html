@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in vé - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <style>
+        .qr-scanner-container {
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        #qr-reader {
+            width: 100%;
+            margin: var(--spacing-lg) 0;
+        }
+        .manual-input {
+            margin-top: var(--spacing-lg);
+        }
+        .ticket-info-card {
+            margin-top: var(--spacing-lg);
+            text-align: left;
+        }
+        .ticket-status {
+            display: inline-block;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .ticket-status--paid {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .ticket-status--checkedin {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .ticket-status--booked {
+            background-color: var(--warning-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Phim</a>
+                <a href="staff-booking.html" class="header__nav-link">Đặt vé trực tiếp</a>
+                <a href="staff-checkin.html" class="header__nav-link header__nav-link--active">Check-in vé</a>
+                <a href="staff-tickets.html" class="header__nav-link">Danh sách vé hôm nay</a>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <h1 class="mb-lg">Check-in vé</h1>
+
+            <div id="alert-container"></div>
+
+            <div class="qr-scanner-container">
+                <div class="card">
+                    <div class="card__header">
+                        <h3 class="card__title">Quét QR code</h3>
+                    </div>
+                    <div class="card__body">
+                        <div id="qr-reader">
+                            <video id="qr-video" style="width: 100%; max-width: 400px; border-radius: var(--border-radius); display: none;"></video>
+                            <canvas id="qr-canvas" style="display: none;"></canvas>
+                        </div>
+                        <button id="start-camera-btn" class="btn btn--primary btn--large" style="width: 100%; margin-top: var(--spacing-md);">
+                            Bật camera để quét QR
+                        </button>
+                        <button id="stop-camera-btn" class="btn btn--secondary btn--large" style="width: 100%; margin-top: var(--spacing-sm); display: none;">
+                            Tắt camera
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card manual-input">
+                    <div class="card__header">
+                        <h3 class="card__title">Hoặc nhập mã QR thủ công</h3>
+                    </div>
+                    <div class="card__body">
+                        <div class="form-group">
+                            <input type="text" id="qr-code-input" class="form-input" placeholder="Nhập mã QR code">
+                        </div>
+                        <button id="check-ticket-btn" class="btn btn--primary btn--large" style="width: 100%;">
+                            Kiểm tra vé
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ticket-info-container" style="display: none;">
+                <div class="card ticket-info-card">
+                    <div class="card__header">
+                        <h3 class="card__title">Thông tin vé</h3>
+                    </div>
+                    <div class="card__body" id="ticket-info">
+                        <!-- Ticket info will be loaded here -->
+                    </div>
+                    <div class="card__footer">
+                        <button id="checkin-btn" class="btn btn--primary btn--large" style="width: 100%;" disabled>
+                            Check-in vé
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/staff.js"></script>
+    <script>
+        // Check authentication and staff role
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        const user = getCurrentUser();
+        if (!user.roles || (!user.roles.includes('Staff') && !user.roles.includes('Admin'))) {
+            showAlert('Bạn không có quyền truy cập trang này', 'error');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
+
+        initUserMenu();
+        document.getElementById('user-name').textContent = user.fullName || user.username;
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        let currentTicket = null;
+        let stream = null;
+
+        // Manual QR code input
+        document.getElementById('check-ticket-btn').addEventListener('click', async () => {
+            const qrCode = document.getElementById('qr-code-input').value.trim();
+            if (!qrCode) {
+                showAlert('Vui lòng nhập mã QR code', 'error');
+                return;
+            }
+            await checkTicketByQrCode(qrCode);
+        });
+
+        // Enter key to check ticket
+        document.getElementById('qr-code-input').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const qrCode = e.target.value.trim();
+                if (qrCode) {
+                    await checkTicketByQrCode(qrCode);
+                }
+            }
+        });
+
+        // Start camera
+        document.getElementById('start-camera-btn').addEventListener('click', startCamera);
+        document.getElementById('stop-camera-btn').addEventListener('click', stopCamera);
+
+        // Check-in button
+        document.getElementById('checkin-btn').addEventListener('click', async () => {
+            if (!currentTicket) return;
+            await checkInTicket(currentTicket.qrCodeData);
+        });
+    </script>
+</body>
+</html>
+

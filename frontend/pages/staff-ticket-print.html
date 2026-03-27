@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In vé - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <style>
+        @media print {
+            body {
+                background: white;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .ticket-card {
+                page-break-after: always;
+                border: 2px solid #000;
+                margin-bottom: 20px;
+            }
+        }
+        .ticket-card {
+            max-width: 400px;
+            margin: var(--spacing-lg) auto;
+            padding: var(--spacing-xl);
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+        }
+        .ticket-header {
+            text-align: center;
+            border-bottom: 2px dashed var(--border-color);
+            padding-bottom: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+        .ticket-header h2 {
+            color: var(--primary-color);
+            margin: 0;
+        }
+        .ticket-info {
+            margin: var(--spacing-md) 0;
+        }
+        .ticket-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: var(--spacing-sm) 0;
+            padding: var(--spacing-xs) 0;
+            border-bottom: 1px dotted var(--border-color);
+        }
+        .ticket-info-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .ticket-info-value {
+            color: var(--text-primary);
+            text-align: right;
+        }
+        .qr-code-placeholder {
+            width: 150px;
+            height: 150px;
+            margin: var(--spacing-lg) auto;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            font-size: 0.75rem;
+            text-align: center;
+            padding: var(--spacing-sm);
+            word-break: break-all;
+        }
+        .print-actions {
+            text-align: center;
+            margin-top: var(--spacing-xl);
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <header class="header">
+            <div class="header__container">
+                <a href="index.html" class="header__logo">Cinema Booking</a>
+                <nav class="header__nav">
+                    <a href="staff-booking.html" class="header__nav-link">Đặt vé trực tiếp</a>
+                    <a href="staff-checkin.html" class="header__nav-link">Check-in vé</a>
+                    <a href="staff-tickets.html" class="header__nav-link">Danh sách vé</a>
+                </nav>
+            </div>
+        </header>
+    </div>
+
+    <main class="main-content">
+        <div class="container">
+            <div id="tickets-container">
+                <!-- Tickets will be loaded here -->
+            </div>
+
+            <div class="print-actions no-print">
+                <button onclick="window.print()" class="btn btn--primary btn--large">In vé</button>
+                <button onclick="window.location.href='staff-booking.html'" class="btn btn--secondary btn--large">Đặt vé mới</button>
+                <button onclick="window.location.href='staff-tickets.html'" class="btn btn--outline btn--large">Xem danh sách vé</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        // Check authentication
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        // Load tickets from URL parameter
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reservationId = urlParams.get('reservationId');
+            
+            if (reservationId) {
+                await loadTicketsForPrint(reservationId);
+            } else {
+                document.getElementById('tickets-container').innerHTML = 
+                    '<div class="alert alert--error">Không tìm thấy thông tin vé</div>';
+            }
+        });
+
+        async function loadTicketsForPrint(reservationId) {
+            try {
+                // Use the new endpoint for staff to get tickets by reservation ID
+                const ticketsResponse = await get(`/tickets/reservation/${reservationId}`, true);
+                
+                if (ticketsResponse.success && ticketsResponse.data && ticketsResponse.data.length > 0) {
+                    renderTickets(ticketsResponse.data, null);
+                    return;
+                }
+                
+                // Fallback: Try to get from user's tickets (in case staff booked for themselves)
+                const myTicketsResponse = await get(`/tickets/my`, true);
+                
+                if (myTicketsResponse.success && myTicketsResponse.data) {
+                    const tickets = myTicketsResponse.data.filter(t => 
+                        t.reservationId == parseInt(reservationId)
+                    );
+                    
+                    if (tickets.length > 0) {
+                        renderTickets(tickets, null);
+                        return;
+                    }
+                }
+                
+                // If still not found, show error
+                document.getElementById('tickets-container').innerHTML = 
+                    '<div class="alert alert--error">Không tìm thấy vé cho mã đặt vé này. Có thể vé chưa được tạo hoặc bạn không có quyền xem.</div>';
+            } catch (error) {
+                console.error('Load tickets error:', error);
+                let errorMessage = 'Lỗi khi tải thông tin vé';
+                
+                if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
+                    errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else if (error.message && error.message.includes('403')) {
+                    errorMessage = 'Bạn không có quyền xem vé này. Vui lòng đăng nhập với tài khoản Staff hoặc Admin.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                document.getElementById('tickets-container').innerHTML = 
+                    `<div class="alert alert--error">${errorMessage}</div>`;
+            }
+        }
+
+        function renderTickets(tickets, booking) {
+            const container = document.getElementById('tickets-container');
+            container.innerHTML = '';
+
+            tickets.forEach(ticket => {
+                const startTime = new Date(ticket.showtimeStartTime);
+                const ticketCard = document.createElement('div');
+                ticketCard.className = 'ticket-card';
+                
+                ticketCard.innerHTML = `
+                    <div class="ticket-header">
+                        <h2>CINEMA BOOKING</h2>
+                        <p style="margin: var(--spacing-xs) 0; color: var(--text-secondary);">Vé xem phim</p>
+                    </div>
+                    
+                    <div class="ticket-info">
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Phim:</span>
+                            <span class="ticket-info-value">${ticket.movieTitle || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Phòng:</span>
+                            <span class="ticket-info-value">${ticket.auditoriumName || 'N/A'}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Ghế:</span>
+                            <span class="ticket-info-value">${ticket.rowLabel}${ticket.seatNumber}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Thời gian:</span>
+                            <span class="ticket-info-value">${startTime.toLocaleString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Giá vé:</span>
+                            <span class="ticket-info-value">${ticket.seatPrice.toLocaleString('vi-VN')} đ</span>
+                        </div>
+                        <div class="ticket-info-row">
+                            <span class="ticket-info-label">Mã vé:</span>
+                            <span class="ticket-info-value" style="font-size: 0.875rem;">${ticket.qrCodeData}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="qr-code-placeholder">
+                        ${ticket.qrCodeData}
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 2px dashed var(--border-color);">
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0;">
+                            Cảm ơn bạn đã sử dụng dịch vụ!
+                        </p>
+                    </div>
+                `;
+                
+                container.appendChild(ticketCard);
+            });
+        }
+    </script>
+</body>
+</html>
+

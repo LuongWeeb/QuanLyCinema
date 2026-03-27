@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý phòng chiếu - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Trang chủ</a>
+                <a href="admin-movies.html" class="header__nav-link">Quản lý phim</a>
+                <a href="admin-showtimes.html" class="header__nav-link">Quản lý suất chiếu</a>
+                <a href="admin-auditoriums.html" class="header__nav-link header__nav-link--active">Quản lý phòng chiếu</a>
+                <a href="admin-reports.html" class="header__nav-link">Báo cáo</a>
+                <a href="create-staff.html" class="header__nav-link">Tạo nhân viên</a>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                <h1>Quản lý phòng chiếu</h1>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <!-- Auditoriums List -->
+            <div class="card mb-lg">
+                <div class="card__header">
+                    <h3 class="card__title">Danh sách phòng chiếu</h3>
+                </div>
+                <div class="card__body">
+                    <div id="auditoriums-list">
+                        <!-- Auditoriums will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seats Management -->
+            <div id="seats-section" class="card" style="display: none;">
+                <div class="card__header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 class="card__title" id="seats-section-title">Quản lý ghế</h3>
+                    <div style="display: flex; gap: var(--spacing-sm);">
+                        <button class="btn btn--secondary btn--small" onclick="openBulkSeatModal()">Thêm nhiều ghế</button>
+                        <button class="btn btn--primary btn--small" onclick="openAddSeatModal()">Thêm ghế</button>
+                    </div>
+                </div>
+                <div class="card__body">
+                    <div id="seats-grid-container">
+                        <!-- Seats grid will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Seat Modal -->
+    <div id="seat-modal" class="modal">
+        <div class="modal__content">
+            <div class="modal__header">
+                <h3 class="modal__title" id="seat-modal-title">Thêm ghế</h3>
+                <button class="modal__close" onclick="closeSeatModal()">&times;</button>
+            </div>
+            <form id="seat-form">
+                <input type="hidden" id="seat-id">
+                <input type="hidden" id="seat-auditorium-id">
+                <div class="form-group">
+                    <label for="seat-row" class="form-label">Hàng *</label>
+                    <input type="text" id="seat-row" class="form-input" required maxlength="10" placeholder="A, B, C...">
+                </div>
+                <div class="form-group">
+                    <label for="seat-number" class="form-label">Số ghế *</label>
+                    <input type="number" id="seat-number" class="form-input" required min="1" placeholder="1, 2, 3...">
+                </div>
+                <div class="form-group">
+                    <label for="seat-type" class="form-label">Loại ghế *</label>
+                    <select id="seat-type" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn--primary btn--large" style="width: 100%;">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Add Seats Modal -->
+    <div id="bulk-seat-modal" class="modal">
+        <div class="modal__content">
+            <div class="modal__header">
+                <h3 class="modal__title">Thêm nhiều ghế</h3>
+                <button class="modal__close" onclick="closeBulkSeatModal()">&times;</button>
+            </div>
+            <form id="bulk-seat-form">
+                <input type="hidden" id="bulk-seat-auditorium-id">
+                <div class="form-group">
+                    <label for="bulk-seat-row" class="form-label">Hàng *</label>
+                    <input type="text" id="bulk-seat-row" class="form-input" required maxlength="10" placeholder="A, B, C...">
+                </div>
+                <div class="form-group">
+                    <label for="bulk-seat-start" class="form-label">Số ghế bắt đầu *</label>
+                    <input type="number" id="bulk-seat-start" class="form-input" required min="1" placeholder="1">
+                </div>
+                <div class="form-group">
+                    <label for="bulk-seat-end" class="form-label">Số ghế kết thúc *</label>
+                    <input type="number" id="bulk-seat-end" class="form-input" required min="1" placeholder="10">
+                    <small class="text-secondary">Tối đa 50 ghế mỗi lần</small>
+                </div>
+                <div class="form-group">
+                    <label for="bulk-seat-type" class="form-label">Loại ghế *</label>
+                    <select id="bulk-seat-type" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn--primary btn--large" style="width: 100%;">Tạo ghế</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/admin-auditoriums.js"></script>
+    <script>
+        // Check authentication and admin role
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        initUserMenu();
+
+        const user = getCurrentUser();
+        document.getElementById('user-name').textContent = user.fullName || user.username;
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAuditoriums();
+            loadSeatTypes();
+        });
+    </script>
+</body>
+</html>
+

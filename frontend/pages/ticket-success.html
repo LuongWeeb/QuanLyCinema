@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt vé thành công - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        .success-header {
+            text-align: center;
+            padding: var(--spacing-xl) 0;
+            background: linear-gradient(135deg, var(--primary-color), var(--success-color));
+            color: white;
+            border-radius: var(--border-radius-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        .success-header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        .success-header p {
+            margin: var(--spacing-sm) 0 0 0;
+            font-size: 1.25rem;
+        }
+        .ticket-display {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .qr-code-container {
+            text-align: center;
+            padding: var(--spacing-lg);
+            background: white;
+            border-radius: var(--border-radius-lg);
+            margin: var(--spacing-lg) 0;
+        }
+        .qr-code-wrapper {
+            display: inline-block;
+            padding: var(--spacing-md);
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin: var(--spacing-md) 0;
+        }
+        .checkin-code {
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-md);
+            background-color: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            font-family: monospace;
+            word-break: break-all;
+            text-align: center;
+        }
+        .ticket-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Phim</a>
+                <a href="my-tickets.html" class="header__nav-link">Vé của tôi</a>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="success-header">
+                <h1>✅ Đặt vé thành công!</h1>
+                <p>Vé của bạn đã được xác nhận</p>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div id="tickets-container" class="ticket-display">
+                <!-- Tickets will be loaded here -->
+            </div>
+
+            <div class="text-center mt-lg">
+                <a href="my-tickets.html" class="btn btn--primary btn--large">Xem tất cả vé của tôi</a>
+                <a href="index.html" class="btn btn--secondary btn--large">Về trang chủ</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/common.js"></script>
+    <script>
+        // Check authentication
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        initUserMenu();
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Load tickets from URL parameter
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reservationId = urlParams.get('reservationId');
+            
+            if (reservationId) {
+                await loadTicketsForSuccess(reservationId);
+            } else {
+                document.getElementById('tickets-container').innerHTML = 
+                    '<div class="alert alert--error">Không tìm thấy thông tin vé</div>';
+            }
+        });
+
+        async function loadTicketsForSuccess(reservationId) {
+            try {
+                // Get tickets by reservation ID
+                const ticketsResponse = await get(`/tickets/my`, true);
+                
+                if (ticketsResponse.success && ticketsResponse.data) {
+                    const tickets = ticketsResponse.data.filter(t => 
+                        t.reservationId == parseInt(reservationId)
+                    );
+                    
+                    if (tickets.length > 0) {
+                        renderTickets(tickets);
+                    } else {
+                        document.getElementById('tickets-container').innerHTML = 
+                            '<div class="alert alert--error">Không tìm thấy vé cho mã đặt vé này.</div>';
+                    }
+                } else {
+                    document.getElementById('tickets-container').innerHTML = 
+                        '<div class="alert alert--error">Lỗi khi tải thông tin vé.</div>';
+                }
+            } catch (error) {
+                console.error('Load tickets error:', error);
+                document.getElementById('tickets-container').innerHTML = 
+                    '<div class="alert alert--error">Lỗi khi tải thông tin vé: ' + (error.message || 'Unknown error') + '</div>';
+            }
+        }
+
+        function renderTickets(tickets) {
+            const container = document.getElementById('tickets-container');
+            container.innerHTML = '';
+
+            if (tickets.length === 0) {
+                container.innerHTML = '<div class="alert alert--error">Không có vé nào.</div>';
+                return;
+            }
+
+            const ticket = tickets[0];
+            const startTime = new Date(ticket.showtimeStartTime);
+
+            tickets.forEach((t, index) => {
+                const ticketCard = document.createElement('div');
+                ticketCard.className = 'card mb-lg';
+                
+                ticketCard.innerHTML = `
+                    <div class="card__header">
+                        <h3 class="card__title">${t.movieTitle || 'N/A'}</h3>
+                        <span class="badge badge--success">Đã thanh toán</span>
+                    </div>
+                    <div class="card__body">
+                        <div class="ticket-info-grid">
+                            <div>
+                                <p><strong>Mã đặt vé:</strong></p>
+                                <p style="font-family: monospace; background: var(--bg-secondary); padding: var(--spacing-sm); border-radius: var(--border-radius);">${t.reservationCode || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p><strong>Phòng:</strong> ${t.auditoriumName || 'N/A'}</p>
+                                <p><strong>Ghế:</strong> ${t.rowLabel}${t.seatNumber}</p>
+                            </div>
+                            <div>
+                                <p><strong>Thời gian:</strong></p>
+                                <p>${startTime.toLocaleString('vi-VN', {
+                                    weekday: 'long',
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}</p>
+                            </div>
+                            <div>
+                                <p><strong>Giá vé:</strong></p>
+                                <p style="font-size: 1.25rem; font-weight: 600; color: var(--primary-color);">${t.seatPrice.toLocaleString('vi-VN')} đ</p>
+                            </div>
+                        </div>
+
+                        <div class="qr-code-container">
+                            <h4 style="margin-bottom: var(--spacing-md);">Mã QR Code để check-in</h4>
+                            <div class="qr-code-wrapper">
+                                <canvas id="qr-canvas-${t.ticketId}" style="display: none;"></canvas>
+                                <div id="qr-placeholder-${t.ticketId}" style="width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; background: white;">
+                                    <div class="spinner"></div>
+                                </div>
+                            </div>
+                            <div class="checkin-code">
+                                <p style="margin: 0; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--spacing-xs);">Mã check-in:</p>
+                                <p style="margin: 0; font-size: 1rem; font-weight: 600; font-family: monospace; word-break: break-all;">${t.qrCodeData || 'N/A'}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(ticketCard);
+
+                // Generate QR code
+                if (t.qrCodeData && typeof QRCode !== 'undefined') {
+                    const canvasId = `qr-canvas-${t.ticketId}`;
+                    const placeholderId = `qr-placeholder-${t.ticketId}`;
+                    
+                    QRCode.toCanvas(document.getElementById(canvasId), t.qrCodeData, {
+                        width: 200,
+                        margin: 2,
+                        color: {
+                            dark: '#000000',
+                            light: '#FFFFFF'
+                        }
+                    }, function (error) {
+                        if (error) {
+                            console.error('QR code generation error:', error);
+                            document.getElementById(placeholderId).innerHTML = 
+                                '<p style="color: var(--text-secondary);">Không thể tạo QR code</p>';
+                        } else {
+                            const canvas = document.getElementById(canvasId);
+                            const placeholder = document.getElementById(placeholderId);
+                            placeholder.style.display = 'none';
+                            canvas.style.display = 'block';
+                        }
+                    });
+                } else if (t.qrCodeData) {
+                    // Fallback if QRCode library not loaded
+                    const placeholderId = `qr-placeholder-${t.ticketId}`;
+                    document.getElementById(placeholderId).innerHTML = 
+                        `<div style="padding: var(--spacing-md); text-align: center;">
+                            <p style="font-size: 0.875rem; color: var(--text-secondary);">Mã QR: ${t.qrCodeData}</p>
+                        </div>`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
+
+
+

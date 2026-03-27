@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách vé hôm nay - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Phim</a>
+                <a href="staff-booking.html" class="header__nav-link">Đặt vé trực tiếp</a>
+                <a href="staff-checkin.html" class="header__nav-link">Check-in vé</a>
+                <a href="staff-tickets.html" class="header__nav-link header__nav-link--active">Danh sách vé hôm nay</a>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                <h1>Danh sách vé hôm nay</h1>
+                <button class="btn btn--primary" onclick="loadTodayTickets()">Làm mới</button>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div class="card mb-lg">
+                <div class="card__header">
+                    <h3 class="card__title">Thống kê</h3>
+                </div>
+                <div class="card__body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-md);">
+                        <div style="text-align: center; padding: var(--spacing-md); background-color: var(--bg-secondary); border-radius: var(--border-radius);">
+                            <p style="font-size: 2rem; font-weight: 600; margin: 0; color: var(--primary-color);" id="total-tickets">0</p>
+                            <p style="margin: var(--spacing-xs) 0 0 0; color: var(--text-secondary);">Tổng số vé</p>
+                        </div>
+                        <div style="text-align: center; padding: var(--spacing-md); background-color: var(--bg-secondary); border-radius: var(--border-radius);">
+                            <p style="font-size: 2rem; font-weight: 600; margin: 0; color: var(--success-color);" id="checkedin-tickets">0</p>
+                            <p style="margin: var(--spacing-xs) 0 0 0; color: var(--text-secondary);">Đã check-in</p>
+                        </div>
+                        <div style="text-align: center; padding: var(--spacing-md); background-color: var(--bg-secondary); border-radius: var(--border-radius);">
+                            <p style="font-size: 2rem; font-weight: 600; margin: 0; color: var(--warning-color);" id="pending-tickets">0</p>
+                            <p style="margin: var(--spacing-xs) 0 0 0; color: var(--text-secondary);">Chưa check-in</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card__header">
+                    <h3 class="card__title">Danh sách vé</h3>
+                </div>
+                <div class="card__body">
+                    <div id="tickets-list">
+                        <!-- Tickets will be loaded here -->
+                    </div>
+                    <div id="loading" class="spinner hidden"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/staff.js"></script>
+    <script>
+        // Check authentication and staff role
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        const user = getCurrentUser();
+        if (!user.roles || (!user.roles.includes('Staff') && !user.roles.includes('Admin'))) {
+            showAlert('Bạn không có quyền truy cập trang này', 'error');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
+
+        initUserMenu();
+        document.getElementById('user-name').textContent = user.fullName || user.username;
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Load tickets on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTodayTickets();
+        });
+
+        // Load today's tickets
+        async function loadTodayTickets() {
+            const container = document.getElementById('tickets-list');
+            const loading = document.getElementById('loading');
+
+            container.innerHTML = '';
+            loading.classList.remove('hidden');
+
+            try {
+                const response = await get('/tickets/today', true);
+
+                if (response.success && response.data) {
+                    const tickets = response.data;
+                    renderTickets(tickets);
+                    updateStatistics(tickets);
+                } else {
+                    container.innerHTML = '<p class="alert alert--error">Lỗi khi tải danh sách vé.</p>';
+                }
+            } catch (error) {
+                console.error('Load tickets error:', error);
+                container.innerHTML = '<p class="alert alert--error">Lỗi khi tải danh sách vé.</p>';
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        // Render tickets
+        function renderTickets(tickets) {
+            const container = document.getElementById('tickets-list');
+
+            if (tickets.length === 0) {
+                container.innerHTML = '<p class="text-center">Không có vé nào trong ngày hôm nay.</p>';
+                return;
+            }
+
+            // Group by showtime
+            const ticketsByShowtime = {};
+            tickets.forEach(ticket => {
+                const key = `${ticket.showtimeId}_${ticket.showtimeStartTime}`;
+                if (!ticketsByShowtime[key]) {
+                    ticketsByShowtime[key] = {
+                        showtime: ticket,
+                        tickets: []
+                    };
+                }
+                ticketsByShowtime[key].tickets.push(ticket);
+            });
+
+            container.innerHTML = Object.values(ticketsByShowtime).map(group => {
+                const showtime = group.showtime;
+                const startTime = new Date(showtime.showtimeStartTime);
+                return `
+                    <div class="card mb-md">
+                        <div class="card__header">
+                            <h4 style="margin: 0;">${showtime.movieTitle || 'N/A'} - ${startTime.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</h4>
+                            <p style="margin: var(--spacing-xs) 0 0 0; color: var(--text-secondary);">Phòng: ${showtime.auditoriumName || 'N/A'}</p>
+                        </div>
+                        <div class="card__body">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--spacing-sm);">
+                                ${group.tickets.map(ticket => {
+                                    const statusClass = ticket.status === 'CheckedIn' ? 'badge--success' :
+                                                       ticket.status === 'Paid' ? 'badge--warning' :
+                                                       'badge--error';
+                                    const statusText = ticket.status === 'CheckedIn' ? 'Đã check-in' :
+                                                      ticket.status === 'Paid' ? 'Đã thanh toán' :
+                                                      ticket.status;
+                                    return `
+                                        <div style="padding: var(--spacing-sm); background-color: var(--bg-secondary); border-radius: var(--border-radius); text-align: center;">
+                                            <p style="margin: 0; font-weight: 600;">${ticket.rowLabel}${ticket.seatNumber}</p>
+                                            <span class="badge ${statusClass}" style="margin-top: var(--spacing-xs); display: inline-block;">${statusText}</span>
+                                            ${ticket.checkedInAt ? `<p style="margin: var(--spacing-xs) 0 0 0; font-size: 0.75rem; color: var(--text-secondary);">${new Date(ticket.checkedInAt).toLocaleTimeString('vi-VN')}</p>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update statistics
+        function updateStatistics(tickets) {
+            const total = tickets.length;
+            const checkedIn = tickets.filter(t => t.status === 'CheckedIn').length;
+            const pending = tickets.filter(t => t.status === 'Paid').length;
+
+            document.getElementById('total-tickets').textContent = total;
+            document.getElementById('checkedin-tickets').textContent = checkedIn;
+            document.getElementById('pending-tickets').textContent = pending;
+        }
+    </script>
+</body>
+</html>
+

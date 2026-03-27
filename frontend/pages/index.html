@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang chủ - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Phim</a>
+                <a href="my-tickets.html" class="header__nav-link">Vé của tôi</a>
+                <span id="staff-link" class="hidden">
+                    <a href="staff-checkin.html" class="header__nav-link">Nhân viên</a>
+                </span>
+                <span id="admin-link" class="hidden">
+                    <a href="admin-movies.html" class="header__nav-link">Quản trị hệ thống</a>
+                </span>
+                <span id="auth-links">
+                    <a href="login.html" class="header__nav-link">Đăng nhập</a>
+                    <a href="register.html" class="header__nav-link">Đăng ký</a>
+                </span>
+                <span id="user-menu" class="header__user-menu hidden">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <h1 class="text-center mb-lg">Danh sách phim</h1>
+
+            <div class="form-group">
+                <input type="text" id="search-input" class="form-input" placeholder="Tìm kiếm phim...">
+            </div>
+
+            <div id="genres-filter" class="mb-lg"></div>
+
+            <div id="movies-container" class="grid grid--3">
+                <!-- Movies will be loaded here -->
+            </div>
+
+            <div id="pagination" class="text-center mt-lg"></div>
+
+            <div id="loading" class="spinner hidden"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/movies.js"></script>
+    <script>
+        // Check authentication
+        const user = getCurrentUser();
+        if (user) {
+            document.getElementById('auth-links').classList.add('hidden');
+            document.getElementById('user-menu').classList.remove('hidden');
+            initUserMenu();
+        }
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Load movies on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMovies();
+            loadGenres();
+        });
+    </script>
+</body>
+</html>

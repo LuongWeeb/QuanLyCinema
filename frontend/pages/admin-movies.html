@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý phim - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Trang chủ</a>
+                <a href="admin-movies.html" class="header__nav-link header__nav-link--active">Quản lý phim</a>
+                <a href="admin-showtimes.html" class="header__nav-link">Quản lý suất chiếu</a>
+                <a href="admin-auditoriums.html" class="header__nav-link">Quản lý phòng chiếu</a>
+                <a href="admin-reports.html" class="header__nav-link">Báo cáo</a>
+                <a href="create-staff.html" class="header__nav-link">Tạo nhân viên</a>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                <h1>Quản lý phim</h1>
+                <button class="btn btn--primary" onclick="openMovieModal()">Thêm phim mới</button>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div class="card">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên phim</th>
+                            <th>Thể loại</th>
+                            <th>Thời lượng</th>
+                            <th>Rating</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movies-table-body">
+                        <!-- Movies will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Movie Modal -->
+    <div id="movie-modal" class="modal">
+        <div class="modal__content">
+            <div class="modal__header">
+                <h3 class="modal__title" id="modal-title">Thêm phim mới</h3>
+                <button class="modal__close" onclick="closeMovieModal()">&times;</button>
+            </div>
+            <form id="movie-form">
+                <input type="hidden" id="movie-id">
+                <div class="form-group">
+                    <label for="movie-title" class="form-label">Tên phim *</label>
+                    <input type="text" id="movie-title" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="movie-description" class="form-label">Mô tả</label>
+                    <textarea id="movie-description" class="form-textarea" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="movie-duration" class="form-label">Thời lượng (phút) *</label>
+                    <input type="number" id="movie-duration" class="form-input" required min="1">
+                </div>
+                <div class="form-group">
+                    <label for="movie-rating" class="form-label">IMDB Rating</label>
+                    <input type="number" id="movie-rating" class="form-input" step="0.1" min="0" max="10">
+                </div>
+                <div class="form-group">
+                    <label for="movie-poster-file" class="form-label">Ảnh poster</label>
+                    <input type="file" id="movie-poster-file" class="form-input" accept="image/*" onchange="handlePosterFileChange(event)">
+                    <input type="hidden" id="movie-poster">
+                    <div id="poster-preview" style="margin-top: var(--spacing-sm);"></div>
+                    <div style="margin-top: var(--spacing-xs);">
+                        <small class="text-secondary">Hoặc nhập URL:</small>
+                        <input type="url" id="movie-poster-url" class="form-input" style="margin-top: var(--spacing-xs);" placeholder="https://example.com/poster.jpg" onchange="document.getElementById('movie-poster').value = this.value; if(this.value) showPosterPreview(this.value);">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn--primary btn--large" style="width: 100%;">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/admin.js"></script>
+    <script>
+        // Check authentication and admin role
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        const user = getCurrentUser();
+        document.getElementById('user-name').textContent = user.fullName || user.username;
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Load movies on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminMovies();
+        });
+    </script>
+</body>
+</html>
+

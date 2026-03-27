@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh toán - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Phim</a>
+                <a href="my-tickets.html" class="header__nav-link">Vé của tôi</a>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <h1 class="mb-lg">Thanh toán</h1>
+
+            <div id="alert-container"></div>
+
+            <div id="payment-content" style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--spacing-xl);">
+                <div class="card">
+                    <div class="card__header">
+                        <h3 class="card__title">Thông tin đặt vé</h3>
+                    </div>
+                    <div class="card__body" id="reservation-info">
+                        <!-- Reservation info will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="card" id="payment-section" style="position: sticky; top: 100px;">
+                    <div class="card__header">
+                        <h3 class="card__title">Thanh toán</h3>
+                    </div>
+                    <div class="card__body">
+                        <div id="expiry-warning" style="display: none; padding: var(--spacing-md); background-color: var(--warning-color); border-radius: var(--border-radius); margin-bottom: var(--spacing-md);">
+                            <p style="margin: 0; font-weight: 600;"><strong>⏰ Còn lại:</strong> <span id="countdown-timer"></span></p>
+                            <p style="margin: var(--spacing-xs) 0 0 0; font-size: 0.875rem;">Vui lòng thanh toán trước khi hết hạn</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="payment-method" class="form-label">Phương thức thanh toán</label>
+                            <select id="payment-method" class="form-select">
+                                <option value="Cash">Tiền mặt (Thanh toán tại quầy)</option>
+                                <option value="AtCounter">Thanh toán tại quầy</option>
+                                <option value="Card">Thẻ</option>
+                                <option value="VNPay">VNPay</option>
+                                <option value="Momo">Momo</option>
+                            </select>
+                            <small id="counter-payment-note" style="display: none; color: var(--info-color); margin-top: var(--spacing-xs); display: block;">
+                                ℹ️ Với phương thức này, bạn có 24 giờ để thanh toán tại quầy. Vé sẽ không bị hết hạn trong 24 giờ.
+                            </small>
+                        </div>
+                        <div id="total-amount" style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color); margin: var(--spacing-lg) 0;"></div>
+                    </div>
+                    <div class="card__footer">
+                        <button id="pay-button" class="btn btn--primary btn--large" style="width: 100%;">Thanh toán</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        // Check authentication
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        const user = getCurrentUser();
+        document.getElementById('user-name').textContent = user.fullName || user.username;
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        let reservationId = null;
+        let reservation = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            reservationId = urlParams.get('reservationId');
+
+            if (!reservationId) {
+                showAlert('Không tìm thấy thông tin đặt vé', 'error');
+                return;
+            }
+
+            await loadReservation(reservationId);
+        });
+
+        async function loadReservation(id) {
+            try {
+                const response = await get(`/bookings/my?pageIndex=1&pageSize=100`, true);
+                if (response.success && response.data) {
+                    const bookings = response.data.items || [];
+                    reservation = bookings.find(b => b.reservationId == id);
+                    
+                    if (reservation) {
+                        // Check if already paid
+                        if (reservation.status === 'Confirmed') {
+                            showAlert('Vé đã được thanh toán.', 'success');
+                            setTimeout(() => {
+                                window.location.href = 'my-tickets.html';
+                            }, 2000);
+                            return;
+                        }
+
+                        // Check if reservation is expired
+                        if (reservation.status === 'Expired') {
+                            showExpiredReservation(reservation);
+                            return;
+                        }
+
+                        if (reservation.status === 'Pending' && reservation.expiresAt) {
+                            const expiryTime = new Date(reservation.expiresAt);
+                            if (expiryTime <= new Date()) {
+                                showExpiredReservation(reservation);
+                                return;
+                            }
+                        }
+
+                        renderReservationInfo();
+                    } else {
+                        showAlert('Không tìm thấy thông tin đặt vé', 'error');
+                    }
+                } else {
+                    showAlert('Không tìm thấy thông tin đặt vé', 'error');
+                }
+            } catch (error) {
+                console.error('Load reservation error:', error);
+                showAlert('Lỗi khi tải thông tin đặt vé', 'error');
+            }
+        }
+
+        function renderReservationInfo() {
+            if (!reservation) return;
+
+            const container = document.getElementById('reservation-info');
+            const startTime = reservation.showtimeStartTime ? new Date(reservation.showtimeStartTime) : (reservation.showtime ? new Date(reservation.showtime.startTime) : new Date());
+            
+            let statusText = 'Đang chờ thanh toán';
+            let statusClass = 'badge--warning';
+            if (reservation.status === 'Confirmed') {
+                statusText = 'Đã xác nhận';
+                statusClass = 'badge--success';
+            } else if (reservation.status === 'Cancelled') {
+                statusText = 'Đã hủy';
+                statusClass = 'badge--error';
+            } else if (reservation.status === 'Expired') {
+                statusText = 'Đã hết hạn';
+                statusClass = 'badge--error';
+            }
+            
+            container.innerHTML = `
+                <p><strong>Mã đặt vé:</strong> <code style="background-color: var(--bg-secondary); padding: 2px 6px; border-radius: var(--border-radius);">${reservation.reservationCode}</code></p>
+                <p><strong>Phim:</strong> ${reservation.movieTitle || (reservation.showtime ? reservation.showtime.movieTitle : 'N/A')}</p>
+                <p><strong>Phòng:</strong> ${reservation.auditoriumName || (reservation.showtime ? reservation.showtime.auditoriumName : 'N/A')}</p>
+                <p><strong>Thời gian:</strong> ${startTime.toLocaleString('vi-VN', { 
+                    weekday: 'long', 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                })}</p>
+                <p><strong>Ghế:</strong> ${reservation.tickets ? reservation.tickets.map(t => `${t.rowLabel}${t.seatNumber}`).join(', ') : 'N/A'}</p>
+                <p><strong>Trạng thái:</strong> <span class="badge ${statusClass}">${statusText}</span></p>
+            `;
+
+            const totalAmount = document.getElementById('total-amount');
+            totalAmount.innerHTML = `
+                <p style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color); margin: 0;">
+                    ${formatCurrency(reservation.totalAmount || 0)}
+                </p>
+            `;
+
+            // Start countdown if reservation is pending
+            if (reservation.status === 'Pending' && reservation.expiresAt) {
+                const expiryTime = new Date(reservation.expiresAt);
+                const hoursUntilExpiry = (expiryTime - new Date()) / (1000 * 60 * 60);
+                
+                // If expiry is more than 20 hours, it's likely a counter payment (24 hours)
+                if (hoursUntilExpiry > 20) {
+                    // Hide countdown for counter payments, show info instead
+                    document.getElementById('expiry-warning').style.display = 'none';
+                    document.getElementById('counter-payment-note').style.display = 'block';
+                } else {
+                    // Show countdown for online payments (20 minutes)
+                    startCountdown(expiryTime);
+                }
+            }
+            
+            // Show counter payment note when selecting counter payment method
+            const paymentMethodSelect = document.getElementById('payment-method');
+            const counterNote = document.getElementById('counter-payment-note');
+            if (paymentMethodSelect && counterNote) {
+                paymentMethodSelect.addEventListener('change', function() {
+                    if (this.value === 'Cash' || this.value === 'AtCounter') {
+                        counterNote.style.display = 'block';
+                        document.getElementById('expiry-warning').style.display = 'none';
+                    } else {
+                        counterNote.style.display = 'none';
+                        if (reservation.status === 'Pending' && reservation.expiresAt) {
+                            const expiryTime = new Date(reservation.expiresAt);
+                            const hoursUntilExpiry = (expiryTime - new Date()) / (1000 * 60 * 60);
+                            if (hoursUntilExpiry <= 20) {
+                                document.getElementById('expiry-warning').style.display = 'block';
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function showExpiredReservation(reservationData) {
+            const paymentContent = document.getElementById('payment-content');
+            const paymentSection = document.getElementById('payment-section');
+            const payButton = document.getElementById('pay-button');
+            
+            // Hide payment section
+            if (paymentSection) {
+                paymentSection.style.display = 'none';
+            }
+            if (payButton) {
+                payButton.disabled = true;
+            }
+
+            // Change layout to single column
+            if (paymentContent) {
+                paymentContent.style.gridTemplateColumns = '1fr';
+            }
+
+            const container = document.getElementById('reservation-info');
+            const startTime = reservationData.showtimeStartTime ? new Date(reservationData.showtimeStartTime) : (reservationData.showtime ? new Date(reservationData.showtime.startTime) : new Date());
+            
+            container.innerHTML = `
+                <div style="text-align: center; padding: var(--spacing-xl);">
+                    <div style="font-size: 4rem; margin-bottom: var(--spacing-md);">⏰</div>
+                    <h2 style="color: var(--error-color); margin-bottom: var(--spacing-md);">Đặt vé đã hết hạn</h2>
+                    <p style="margin-bottom: var(--spacing-lg); color: var(--text-secondary);">
+                        Đặt vé của bạn đã hết hạn thanh toán. Vui lòng đặt lại vé mới.
+                    </p>
+                    <div style="background-color: var(--bg-secondary); padding: var(--spacing-md); border-radius: var(--border-radius); margin-bottom: var(--spacing-lg); text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;">
+                        <p><strong>Mã đặt vé:</strong> <code style="background-color: var(--bg-primary); padding: 2px 6px; border-radius: var(--border-radius);">${reservationData.reservationCode}</code></p>
+                        <p><strong>Phim:</strong> ${reservationData.movieTitle || (reservationData.showtime ? reservationData.showtime.movieTitle : 'N/A')}</p>
+                        <p><strong>Phòng:</strong> ${reservationData.auditoriumName || (reservationData.showtime ? reservationData.showtime.auditoriumName : 'N/A')}</p>
+                        <p><strong>Thời gian:</strong> ${startTime.toLocaleString('vi-VN', { 
+                            weekday: 'long', 
+                            day: '2-digit', 
+                            month: '2-digit', 
+                            year: 'numeric',
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        })}</p>
+                        ${reservationData.tickets ? `<p><strong>Ghế:</strong> ${reservationData.tickets.map(t => `${t.rowLabel}${t.seatNumber}`).join(', ')}</p>` : ''}
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-md); justify-content: center; flex-wrap: wrap;">
+                        <a href="index.html" class="btn btn--primary btn--large">Đặt vé mới</a>
+                        <a href="my-tickets.html" class="btn btn--secondary btn--large">Xem vé của tôi</a>
+                    </div>
+                </div>
+            `;
+
+            showAlert('Đặt vé đã hết hạn. Vui lòng đặt lại.', 'error');
+        }
+
+        function startCountdown(expiryTime) {
+            const countdownEl = document.getElementById('countdown-timer');
+            const warningEl = document.getElementById('expiry-warning');
+            
+            if (!countdownEl || !warningEl) return;
+
+            warningEl.style.display = 'block';
+
+            function updateCountdown() {
+                const now = new Date();
+                const diff = expiryTime - now;
+
+                if (diff <= 0) {
+                    countdownEl.textContent = 'Đã hết hạn';
+                    warningEl.style.backgroundColor = 'var(--error-color)';
+                    document.getElementById('pay-button').disabled = true;
+                    showAlert('Đặt vé đã hết hạn. Vui lòng đặt lại.', 'error');
+                    
+                    // Reload reservation to check status
+                    if (reservationId) {
+                        setTimeout(() => {
+                            loadReservation(reservationId);
+                        }, 2000);
+                    }
+                    return;
+                }
+
+                const minutes = Math.floor(diff / 60000);
+                const seconds = Math.floor((diff % 60000) / 1000);
+                countdownEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                if (diff < 300000) { // Less than 5 minutes
+                    warningEl.style.backgroundColor = 'var(--error-color)';
+                }
+            }
+
+            updateCountdown();
+            const interval = setInterval(updateCountdown, 1000);
+
+            // Clear interval when page unloads
+            window.addEventListener('beforeunload', () => clearInterval(interval));
+        }
+
+        document.getElementById('pay-button').addEventListener('click', async () => {
+            if (!reservation) return;
+
+            const paymentMethod = document.getElementById('payment-method').value;
+            const button = document.getElementById('pay-button');
+            button.disabled = true;
+            button.textContent = 'Đang xử lý...';
+
+            try {
+                const invoiceId = reservation.invoiceId || (reservation.invoice ? reservation.invoice.invoiceId : null);
+                if (!invoiceId) {
+                    showAlert('Không tìm thấy hóa đơn', 'error');
+                    button.disabled = false;
+                    button.textContent = 'Thanh toán';
+                    return;
+                }
+
+                const response = await post('/payments', {
+                    invoiceId: invoiceId,
+                    paymentMethod: paymentMethod
+                }, true);
+
+                if (response.success && response.data) {
+                    showAlert('Thanh toán thành công! Vé đã được xác nhận.', 'success');
+                    // Get reservation ID from invoice
+                    const invoiceId = reservation.invoiceId || (reservation.invoice ? reservation.invoice.invoiceId : null);
+                    if (invoiceId && reservation.reservationId) {
+                        setTimeout(() => {
+                            window.location.href = `ticket-success.html?reservationId=${reservation.reservationId}`;
+                        }, 1500);
+                    } else {
+                        setTimeout(() => {
+                            window.location.href = 'my-tickets.html';
+                        }, 2000);
+                    }
+                } else {
+                    showAlert(response.message || 'Thanh toán thất bại. Vui lòng thử lại.', 'error');
+                    button.disabled = false;
+                    button.textContent = 'Thanh toán';
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showAlert(error.message || 'Thanh toán thất bại', 'error');
+                button.disabled = false;
+                button.textContent = 'Thanh toán';
+            }
+        });
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `<div class="alert alert--${type}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

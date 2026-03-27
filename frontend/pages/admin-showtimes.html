@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý suất chiếu - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Trang chủ</a>
+                <a href="admin-movies.html" class="header__nav-link">Quản lý phim</a>
+                <a href="admin-showtimes.html" class="header__nav-link header__nav-link--active">Quản lý suất chiếu</a>
+                <a href="admin-auditoriums.html" class="header__nav-link">Quản lý phòng chiếu</a>
+                <a href="admin-reports.html" class="header__nav-link">Báo cáo</a>
+                <a href="create-staff.html" class="header__nav-link">Tạo nhân viên</a>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                <h1>Quản lý suất chiếu</h1>
+                <button class="btn btn--primary" onclick="openShowtimeModal()">Thêm suất chiếu mới</button>
+            </div>
+
+            <div id="alert-container"></div>
+
+            <div class="card">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Phim</th>
+                            <th>Phòng</th>
+                            <th>Thời gian</th>
+                            <th>Giá vé</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="showtimes-table-body">
+                        <!-- Showtimes will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Showtime Modal -->
+    <div id="showtime-modal" class="modal">
+        <div class="modal__content">
+            <div class="modal__header">
+                <h3 class="modal__title" id="modal-title">Thêm suất chiếu mới</h3>
+                <button class="modal__close" onclick="closeShowtimeModal()">&times;</button>
+            </div>
+            <form id="showtime-form">
+                <input type="hidden" id="showtime-id">
+                <div class="form-group">
+                    <label for="showtime-movie" class="form-label">Phim *</label>
+                    <select id="showtime-movie" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="showtime-auditorium" class="form-label">Phòng chiếu *</label>
+                    <select id="showtime-auditorium" class="form-select" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="showtime-start" class="form-label">Thời gian bắt đầu *</label>
+                    <input type="datetime-local" id="showtime-start" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="showtime-price" class="form-label">Giá vé cơ bản *</label>
+                    <input type="number" id="showtime-price" class="form-input" required min="0" step="1000">
+                </div>
+                <div class="form-group">
+                    <label for="showtime-format" class="form-label">Định dạng</label>
+                    <select id="showtime-format" class="form-select">
+                        <option value="2D">2D</option>
+                        <option value="3D">3D</option>
+                        <option value="IMAX">IMAX</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="showtime-language" class="form-label">Ngôn ngữ</label>
+                        <select id="showtime-language" class="form-select">
+                        <option value="Lồng tiếng">Lồng tiếng</option>
+                        <option value="Phụ đề">Phụ đề</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn--primary btn--large" style="width: 100%;">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/admin-showtimes.js"></script>
+    <script>
+        // Check authentication and admin role
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        const user = getCurrentUser();
+        document.getElementById('user-name').textContent = user.fullName || user.username;
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Load showtimes on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminShowtimes();
+            loadMoviesForSelect();
+            loadAuditoriumsForSelect();
+        });
+    </script>
+</body>
+</html>
+

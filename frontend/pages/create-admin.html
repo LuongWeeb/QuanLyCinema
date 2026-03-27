@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo tài khoản Admin - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <style>
+        .create-admin-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: var(--spacing-lg);
+        }
+        .warning-box {
+            background-color: var(--warning-color);
+            color: var(--text-color);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-lg);
+            border: 1px solid var(--warning-color);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="create-admin-container">
+                <h1>Tạo tài khoản Admin</h1>
+                
+                <div class="warning-box">
+                    <strong>⚠️ Lưu ý:</strong> Endpoint này chỉ nên được sử dụng một lần để tạo tài khoản admin đầu tiên. 
+                    Sau khi tạo xong, bạn nên xóa hoặc bảo vệ endpoint này trong môi trường production.
+                </div>
+
+                <div id="alert-container"></div>
+
+                <form id="create-admin-form" class="card">
+                    <div class="form-group">
+                        <label for="username" class="form-label">Tên đăng nhập *</label>
+                        <input type="text" id="username" class="form-input" required placeholder="admin">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email *</label>
+                        <input type="email" id="email" class="form-input" required placeholder="admin@cinema.local">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Mật khẩu *</label>
+                        <input type="password" id="password" class="form-input" required placeholder="Nhập mật khẩu mạnh">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullname" class="form-label">Họ và tên</label>
+                        <input type="text" id="fullname" class="form-input" placeholder="Quản trị viên">
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn--primary btn--large" style="width: 100%;">Tạo tài khoản Admin</button>
+                    </div>
+                </form>
+
+                <div style="margin-top: var(--spacing-lg); text-align: center;">
+                    <a href="login.html" class="btn btn--outline">Quay lại đăng nhập</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../js/apiClient.js"></script>
+    <script>
+        document.getElementById('create-admin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const fullName = document.getElementById('fullname').value.trim() || 'Quản trị viên';
+
+            if (!username || !email || !password) {
+                showAlert('Vui lòng điền đầy đủ thông tin bắt buộc', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('Mật khẩu phải có ít nhất 6 ký tự', 'error');
+                return;
+            }
+
+            const button = e.target.querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.textContent = 'Đang tạo...';
+
+            try {
+                const response = await post('/auth/create-admin', {
+                    username,
+                    email,
+                    password,
+                    fullName
+                }, false);
+
+                if (response.success) {
+                    showAlert('Tạo tài khoản admin thành công! Bạn có thể đăng nhập ngay bây giờ.', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showAlert(response.message || 'Tạo tài khoản thất bại', 'error');
+                }
+            } catch (error) {
+                console.error('Create admin error:', error);
+                showAlert(error.message || 'Lỗi khi tạo tài khoản admin', 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Tạo tài khoản Admin';
+            }
+        });
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `<div class="alert alert--${type}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

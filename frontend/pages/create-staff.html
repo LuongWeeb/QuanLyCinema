@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo tài khoản Nhân viên - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: var(--color-background);
+            color: var(--color-text);
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: var(--spacing-xl) 0;
+        }
+        .create-staff-container {
+            max-width: 500px;
+            width: 100%;
+            padding: var(--spacing-xl);
+            background-color: var(--color-card-background);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            text-align: center;
+        }
+        .create-staff-container h1 {
+            margin-bottom: var(--spacing-lg);
+            color: var(--color-primary);
+        }
+        .create-staff-container .form-group {
+            text-align: left;
+        }
+        .alert--info {
+            background-color: var(--color-info-light);
+            color: var(--color-info-dark);
+            border: 1px solid var(--color-info-dark);
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-md);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="create-staff-container">
+            <h1>Tạo tài khoản Nhân viên</h1>
+            <div class="alert--info">
+                <strong>ℹ️ Lưu ý:</strong> Endpoint này chỉ nên được sử dụng bởi Admin để tạo tài khoản nhân viên.
+            </div>
+            <div id="alert-container"></div>
+
+            <form id="create-staff-form" class="card">
+                <div class="form-group">
+                    <label for="username" class="form-label">Tên đăng nhập *</label>
+                    <input type="text" id="username" class="form-input" required placeholder="staff1">
+                </div>
+                <div class="form-group">
+                    <label for="email" class="form-label">Email *</label>
+                    <input type="email" id="email" class="form-input" required placeholder="staff@cinema.local">
+                </div>
+                <div class="form-group">
+                    <label for="password" class="form-label">Mật khẩu *</label>
+                    <input type="password" id="password" class="form-input" required placeholder="Mật khẩu (tối thiểu 6 ký tự)">
+                </div>
+                <div class="form-group">
+                    <label for="fullName" class="form-label">Họ và tên</label>
+                    <input type="text" id="fullName" class="form-input" placeholder="Nhân viên">
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn--primary btn--large" style="width: 100%;">Tạo tài khoản Nhân viên</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script>
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `<div class="alert alert--${type}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        document.getElementById('create-staff-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const fullName = document.getElementById('fullName').value.trim();
+
+            if (!username || !email || !password) {
+                showAlert('Vui lòng điền đầy đủ các trường bắt buộc.', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('Mật khẩu phải có ít nhất 6 ký tự.', 'error');
+                return;
+            }
+
+            const button = e.target.querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.textContent = 'Đang tạo...';
+
+            try {
+                const response = await post('/auth/create-staff', {
+                    username,
+                    email,
+                    password,
+                    fullName
+                });
+
+                if (response.success) {
+                    showAlert('Tạo tài khoản nhân viên thành công!', 'success');
+                    // Optionally redirect to login page
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showAlert(response.message || 'Lỗi khi tạo tài khoản nhân viên', 'error');
+                }
+            } catch (error) {
+                console.error('Create staff error:', error);
+                showAlert(error.message || 'Lỗi khi tạo tài khoản nhân viên', 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Tạo tài khoản Nhân viên';
+            }
+        });
+    </script>
+</body>
+</html>
+

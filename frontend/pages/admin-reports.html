@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Trang chủ</a>
+                <a href="admin-movies.html" class="header__nav-link">Quản lý phim</a>
+                <a href="admin-showtimes.html" class="header__nav-link">Quản lý suất chiếu</a>
+                <a href="admin-auditoriums.html" class="header__nav-link">Quản lý phòng chiếu</a>
+                <a href="admin-reports.html" class="header__nav-link header__nav-link--active">Báo cáo</a>
+                <a href="create-staff.html" class="header__nav-link">Tạo nhân viên</a>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <h1 class="mb-lg">Báo cáo doanh thu</h1>
+
+            <div class="card mb-lg">
+                <h3 class="mb-md">Chọn khoảng thời gian</h3>
+                <div style="display: flex; gap: var(--spacing-md); align-items: center; flex-wrap: wrap;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="date-from" class="form-label">Từ ngày</label>
+                        <input type="date" id="date-from" class="form-input">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="date-to" class="form-label">Đến ngày</label>
+                        <input type="date" id="date-to" class="form-input">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0; align-self: flex-end;">
+                        <button class="btn btn--primary" onclick="loadReports()">Xem báo cáo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reports-container">
+                <!-- Reports will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/reports.js"></script>
+    <script>
+        // Check authentication and admin role
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        const user = getCurrentUser();
+        document.getElementById('user-name').textContent = user.fullName || user.username;
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Set default dates
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const lastWeek = new Date(today);
+            lastWeek.setDate(lastWeek.getDate() - 7);
+            
+            document.getElementById('date-from').value = lastWeek.toISOString().split('T')[0];
+            document.getElementById('date-to').value = today.toISOString().split('T')[0];
+            
+            loadReports();
+        });
+    </script>
+</body>
+</html>
+

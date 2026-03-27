@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt vé - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Phim</a>
+                <a href="my-tickets.html" class="header__nav-link">Vé của tôi</a>
+                <span id="staff-link" class="hidden">
+                    <a href="staff-checkin.html" class="header__nav-link">Nhân viên</a>
+                </span>
+                <span id="admin-link" class="hidden">
+                    <a href="admin-movies.html" class="header__nav-link">Quản trị hệ thống</a>
+                </span>
+                <span id="user-menu" class="header__user-menu">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <h1 class="mb-lg">Chọn ghế</h1>
+
+            <div id="alert-container"></div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--spacing-xl);">
+                <div>
+                    <div id="screen" style="text-align: center; padding: var(--spacing-lg); background: linear-gradient(to bottom, var(--bg-secondary), var(--bg-card)); border-radius: var(--border-radius-lg); margin-bottom: var(--spacing-lg);">
+                        <p style="font-size: 1.25rem; font-weight: 600;">MÀN HÌNH</p>
+                    </div>
+
+                    <div id="seat-grid-container">
+                        <!-- Seat grid will be loaded here -->
+                    </div>
+
+                    <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-lg); flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <div style="width: 24px; height: 24px; background-color: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: var(--border-radius);"></div>
+                            <span>Trống</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <div style="width: 24px; height: 24px; background-color: var(--primary-color); border: 2px solid var(--primary-color); border-radius: var(--border-radius);"></div>
+                            <span>Đã chọn</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <div style="width: 24px; height: 24px; background-color: var(--bg-primary); border: 2px solid var(--border-color); border-radius: var(--border-radius);"></div>
+                            <span>Đã đặt</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card" style="position: sticky; top: 100px;">
+                        <div class="card__header">
+                            <h3 class="card__title" id="movie-title">Thông tin đặt vé</h3>
+                        </div>
+                        <div class="card__body">
+                            <p id="showtime-info"></p>
+                            <p id="selected-seats" class="mt-md"></p>
+                            <p id="total-amount" class="mt-md" style="font-size: 1.25rem; font-weight: 600; color: var(--primary-color);"></p>
+                        </div>
+                        <div class="card__footer">
+                            <button id="book-button" class="btn btn--primary btn--large" style="width: 100%;" disabled>Đặt vé</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/common.js"></script>
+    <script src="../js/booking.js"></script>
+    <script>
+        // Check authentication
+        if (!isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+
+        initUserMenu();
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Load booking page
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const showtimeId = urlParams.get('showtimeId');
+            if (showtimeId) {
+                loadBookingPage(parseInt(showtimeId));
+            } else {
+                document.getElementById('alert-container').innerHTML = '<div class="alert alert--error">Không tìm thấy suất chiếu. Vui lòng chọn suất chiếu từ trang chủ.</div>';
+            }
+        });
+    </script>
+</body>
+</html>
+

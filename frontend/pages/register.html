@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Trang chủ</a>
+                <a href="login.html" class="header__nav-link">Đăng nhập</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="form">
+                <h1 class="text-center mb-lg">Đăng ký</h1>
+
+                <div id="alert-container"></div>
+
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="username" class="form-label">Tên đăng nhập *</label>
+                        <input type="text" id="username" class="form-input" required minlength="3">
+                        <span class="form-help">Tối thiểu 3 ký tự</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email *</label>
+                        <input type="email" id="email" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Mật khẩu *</label>
+                        <input type="password" id="password" class="form-input" required minlength="6">
+                        <span class="form-help">Tối thiểu 6 ký tự</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm-password" class="form-label">Xác nhận mật khẩu *</label>
+                        <input type="password" id="confirm-password" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullName" class="form-label">Họ và tên</label>
+                        <input type="text" id="fullName" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phoneNumber" class="form-label">Số điện thoại</label>
+                        <input type="tel" id="phoneNumber" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn--primary btn--large" style="width: 100%;">Đăng ký</button>
+                    </div>
+
+                    <div class="text-center mt-md">
+                        <span class="text-secondary">Đã có tài khoản? </span>
+                        <a href="login.html" class="text-primary">Đăng nhập ngay</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const fullName = document.getElementById('fullName').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const alertContainer = document.getElementById('alert-container');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+
+            // Validation
+            if (password !== confirmPassword) {
+                showAlert('Mật khẩu xác nhận không khớp', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('Mật khẩu phải có ít nhất 6 ký tự', 'error');
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Đang đăng ký...';
+
+            const result = await register(username, email, password, fullName || null, phoneNumber || null);
+
+            if (result.success) {
+                showAlert('Đăng ký thành công!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            } else {
+                showAlert(result.message || 'Đăng ký thất bại', 'error');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Đăng ký';
+            }
+        });
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `<div class="alert alert--${type}">${message}</div>`;
+        }
+    </script>
+</body>
+</html>
+

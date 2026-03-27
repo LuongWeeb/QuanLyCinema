@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết phim - Cinema Booking</title>
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/layout.css">
+    <link rel="stylesheet" href="../css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Cinema Booking</a>
+            <nav class="header__nav">
+                <a href="index.html" class="header__nav-link">Phim</a>
+                <a href="my-tickets.html" class="header__nav-link">Vé của tôi</a>
+                <span id="auth-links">
+                    <a href="login.html" class="header__nav-link">Đăng nhập</a>
+                </span>
+                <span id="user-menu" class="header__user-menu hidden">
+                    <span class="header__user-name" id="user-name"></span>
+                    <button class="btn btn--outline btn--small" onclick="handleLogout()">Đăng xuất</button>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div id="movie-detail" class="card mb-lg">
+                <!-- Movie details will be loaded here -->
+            </div>
+
+            <h2 class="mb-lg">Lịch chiếu</h2>
+            <div id="date-filter" class="mb-lg"></div>
+            <div id="showtimes-container" class="grid grid--2">
+                <!-- Showtimes will be loaded here -->
+            </div>
+
+            <div id="loading" class="spinner hidden"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Cinema Booking. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../js/apiClient.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/showtimes.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const movieId = urlParams.get('id');
+
+        if (!movieId) {
+            window.location.href = 'index.html';
+        }
+
+        // Check authentication
+        const user = getCurrentUser();
+        if (user) {
+            document.getElementById('auth-links').classList.add('hidden');
+            document.getElementById('user-menu').classList.remove('hidden');
+            document.getElementById('user-name').textContent = user.fullName || user.username;
+        }
+
+        async function handleLogout() {
+            await logout();
+        }
+
+        // Load movie detail and showtimes
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadMovieDetail(movieId);
+            await loadShowtimes(movieId);
+        });
+    </script>
+</body>
+</html>
+
