@@ -2,9 +2,11 @@
 **/bin/
 **/obj/
 Frontend/dist/
+dist/
 
 # Dependencies
 **/node_modules/
+node_modules/
 
 # IDE and local settings
 .vs/
@@ -22,9 +24,30 @@ Frontend/dist/
 # Environment files
 .env
 .env.*
+!.env.example
 Frontend/.env
 Frontend/.env.*
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# Frontend/Node extras
+*.tsbuildinfo
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+*.tgz
+.yarn-integrity
+.parcel-cache
+.cache
+.next
+out
+.nuxt
+.svelte-kit/
+.docusaurus
+.serverless/
+.firebase/
+.vscode-test
+.pnp.*
