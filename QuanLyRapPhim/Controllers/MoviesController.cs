@@ -42,7 +42,35 @@ public class MoviesController : ControllerBase
         }
 
         var movies = await query.OrderByDescending(x => x.Id).ToListAsync();
-        return Ok(movies);
+
+        // `Movie.Rating` đang là một giá trị khác (có thể > 5, ví dụ IMDb).
+        // Để trang chủ hiển thị đúng "số sao 1..5" thì trả về average từ `MovieRatings`.
+        var movieIds = movies.Select(m => m.Id).ToList();
+        var avgByMovie = movieIds.Count == 0
+            ? new Dictionary<int, double>()
+            : await _db.MovieRatings
+                .AsNoTracking()
+                .Where(r => movieIds.Contains(r.MovieId))
+                .GroupBy(r => r.MovieId)
+                .Select(g => new { MovieId = g.Key, Avg = g.Average(r => (double)r.Stars) })
+                .ToDictionaryAsync(x => x.MovieId, x => x.Avg);
+
+        var result = movies.Select(m =>
+        {
+            var avg = avgByMovie.TryGetValue(m.Id, out var a) ? a : 0d;
+            var clamped = (decimal)Math.Clamp(avg, 0d, 5d);
+            return new Movie
+            {
+                Id = m.Id,
+                Name = m.Name,
+                Genre = m.Genre,
+                DurationMinutes = m.DurationMinutes,
+                Rating = clamped,
+                PosterUrl = m.PosterUrl
+            };
+        }).ToList();
+
+        return Ok(result);
     }
 
     [HttpGet("{id:int}")]

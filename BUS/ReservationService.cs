@@ -36,6 +36,12 @@ public class ReservationService : IReservationService
             throw new InvalidOperationException("Suất chiếu không tồn tại.");
         }
 
+        // Không cho phép đặt vé cho suất đã bắt đầu hoặc quá hạn.
+        if (showtime.StartTime <= DateTime.UtcNow)
+        {
+            throw new InvalidOperationException("Suất chiếu đã bắt đầu hoặc đã qua.");
+        }
+
         if (request.SeatIds.Count == 0)
         {
             throw new InvalidOperationException("Phải chọn ít nhất 1 ghế.");
