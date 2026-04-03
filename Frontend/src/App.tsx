@@ -23,15 +23,20 @@ function AdminStaffRoutes({
   onLogout: () => void
 }) {
   const navigate = useNavigate()
+  const isAdmin = currentUser.role.toLowerCase() === 'admin'
   return (
     <Routes>
       <Route path="/" element={<AdminLayout currentUser={currentUser} onLogout={onLogout} />}>
-        <Route index element={<DashboardHome />} />
-        <Route path="phim" element={<AdminMoviesPage />} />
-        <Route path="phong" element={<AdminAuditoriumsPage />} />
-        <Route path="lich-chieu" element={<AdminShowtimesPage />} />
+        <Route index element={<DashboardHome isAdmin={isAdmin} />} />
+        {isAdmin ? (
+          <>
+            <Route path="phim" element={<AdminMoviesPage />} />
+            <Route path="phong" element={<AdminAuditoriumsPage />} />
+            <Route path="lich-chieu" element={<AdminShowtimesPage />} />
+            <Route path="bao-cao" element={<AdminRevenueReportPage />} />
+          </>
+        ) : null}
         <Route path="don-cho-duyet" element={<AdminPendingReservationsPage />} />
-        <Route path="bao-cao" element={<AdminRevenueReportPage />} />
       </Route>
       <Route
         path="/ban-ve"
@@ -57,7 +62,7 @@ function AdminStaffRoutes({
           />
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to={isAdmin ? '/' : '/don-cho-duyet'} replace />} />
     </Routes>
   )
 }

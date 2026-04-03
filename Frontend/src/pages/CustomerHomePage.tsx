@@ -1,20 +1,21 @@
 import {
   BellOutlined,
   CalendarOutlined,
-  ClockCircleOutlined,
   GiftOutlined,
+  LeftOutlined,
   PlayCircleOutlined,
-  QrcodeOutlined,
-  SafetyCertificateOutlined,
+  RightOutlined,
   ShoppingCartOutlined,
   StarFilled,
+  FireOutlined,
+  CheckSquareOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons'
 import {
   Button,
   Card,
   Carousel,
   Col,
-  Collapse,
   Layout,
   Menu,
   Row,
@@ -24,7 +25,7 @@ import {
   Typography,
   message,
 } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { TopbarSearch } from '../components/common/TopbarSearch'
 import { UserDropdown } from '../components/common/UserDropdown'
@@ -40,9 +41,7 @@ const { Header, Content, Footer } = Layout
 interface CustomerHomePageProps {
   currentUser: LoginResponse
   onLogout: () => void
-  /** Ví dụ `/ban-ve` khi nhân viên đặt vé tại quầy */
   routeBase?: string
-  /** Giao diện quầy: ẩn vé của tôi, thêm nút về quản trị */
   staffCounterMode?: boolean
   onBackToAdmin?: () => void
 }
@@ -62,12 +61,31 @@ const heroSlides = [
   },
 ]
 
-const posterImages = [
-  '/posters/Avengers_Endgame.jpg',
-  '/posters/Doraemon_Movie.jpg',
-  '/posters/poster-sci-fi.svg',
-  '/posters/poster-animation.svg',
+const allHeroBanners = [
+  '/hero-banners/Avenger_endGame.jpg',
+  '/hero-banners/Doraemon_Movie.jpg',
+  '/hero-banners/Spider-Man_HomeComing.jpg',
+  '/hero-banners/SpyXFamily.jpg',
+  '/hero-banners/Thanh_Guom_Diet_Quy.png',
+  '/hero-banners/Anh_duong_cua_me.jpg',
+  '/hero-banners/Dich_vu_giao_hang_cua_phu_thuy_Kiki.webp',
+  '/hero-banners/Super_Mario_thien_ha.jpg',
+  '/hero-banners/Tai.jpg',
 ]
+
+function resolveHeroBanner(movie: Movie): string {
+  const n = movie.name.toLowerCase()
+  if (n.includes('doraemon') || n.includes('đôrêmon')) return '/hero-banners/Doraemon_Movie.jpg'
+  if (n.includes('spider')) return '/hero-banners/Spider-Man_HomeComing.jpg'
+  if (n.includes('avengers') || n.includes('avenger')) return '/hero-banners/Avenger_endGame.jpg'
+  if (n.includes('spy x family') || n.includes('spy family')) return '/hero-banners/SpyXFamily.jpg'
+  if (n.includes('thanh gươm') || n.includes('demon slayer')) return '/hero-banners/Thanh_Guom_Diet_Quy.png'
+  if (n.includes('ánh dương') || n.includes('anh duong') || n.includes('của mẹ')) return '/hero-banners/Anh_duong_cua_me.jpg'
+  if (n.includes('kiki') || n.includes('phù thủy') || n.includes('giao hàng')) return '/hero-banners/Dich_vu_giao_hang_cua_phu_thuy_Kiki.webp'
+  if (n.includes('mario')) return '/hero-banners/Super_Mario_thien_ha.jpg'
+  if (n.includes('tai') || n.includes('tài')) return '/hero-banners/Tai.jpg'
+  return allHeroBanners[movie.id % allHeroBanners.length]
+}
 
 function resolvePoster(movie: Movie): string {
   const uploaded = resolveUploadedPosterUrl(movie.posterUrl)
@@ -75,7 +93,7 @@ function resolvePoster(movie: Movie): string {
   const normalized = movie.name.toLowerCase()
   if (normalized.includes('avengers')) return '/posters/Avengers_Endgame.jpg'
   if (normalized.includes('doraemon')) return '/posters/Doraemon_Movie.jpg'
-  return posterImages[movie.id % posterImages.length]
+  return allHeroBanners[movie.id % allHeroBanners.length]
 }
 
 const promoCards = [
@@ -98,47 +116,28 @@ const promoCards = [
 
 const businessSections = [
   {
-    title: 'Đặt vé nhanh',
-    desc: 'Tìm phim, chọn suất, thanh toán và nhận QR trong một luồng xử lý.',
+    title: 'Đặt vé siêu tốc',
+    desc: 'Tìm phim, chọn suất, thanh toán và nhận QR trong một luồng xử lý mượt mà.',
     icon: <ShoppingCartOutlined />,
   },
   {
-    title: 'Lịch chiếu thông minh',
-    desc: 'Gợi ý suất chiếu đông khách và khung giờ phù hợp theo nhu cầu.',
+    title: 'Lịch chiếu AI',
+    desc: 'Gợi ý suất chiếu đông khách và khung giờ vàng phù hợp theo nhu cầu của bạn.',
     icon: <CalendarOutlined />,
   },
   {
-    title: 'Khuyến mãi theo mùa',
-    desc: 'Cập nhật ưu đãi realtime theo event, đối tượng và vai trò thành viên.',
+    title: 'Khuyến mãi Real-time',
+    desc: 'Bùng nổ ưu đãi độc quyền cập nhật theo event, phân hạng thành viên.',
     icon: <GiftOutlined />,
   },
   {
-    title: 'Thông báo sự kiện',
-    desc: 'Nhận thông báo khi phim mới sắp khởi chiếu hoặc có ưu đãi hot.',
+    title: 'Thông báo VIP',
+    desc: 'Nhận thông báo khi siêu phẩm sắp khởi chiếu để săn ghế đôi VIP.',
     icon: <BellOutlined />,
   },
 ]
 
-const faqItems = [
-  {
-    key: '1',
-    label: 'Tôi có thể đổi ghế sau khi thanh toán không?',
-    children:
-      'Bạn có thể đổi ghế trước giờ chiếu tối thiểu 30 phút thông qua mục lịch sử đặt vé hoặc liên hệ quầy hỗ trợ.',
-  },
-  {
-    key: '2',
-    label: 'Nếu QR code bị lỗi thì xử lý thế nào?',
-    children:
-      'Bạn vui lòng đưa mã đơn hàng tại quầy vé. Nhân viên sẽ xác thực vé và hỗ trợ check-in thủ công.',
-  },
-  {
-    key: '3',
-    label: 'Có hỗ trợ thanh toán nào?',
-    children:
-      'Hệ thống hỗ trợ thẻ ngân hàng, ví điện tử và thanh toán tại quầy đối với một số suất chiếu.',
-  },
-]
+
 
 export function CustomerHomePage({
   currentUser,
@@ -155,13 +154,30 @@ export function CustomerHomePage({
   const debouncedSearch = useDebouncedValue(searchInput, 380)
   const [movies, setMovies] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeMenu, setActiveMenu] = useState('phim-dang-chieu')
+  const [activeMenu, setActiveMenu] = useState('')
   const [api, contextHolder] = message.useMessage()
+  const scrollNowRef = useRef<HTMLDivElement>(null)
+  const scrollUpcomingRef = useRef<HTMLDivElement>(null)
+
+  function scrollSection(ref: React.RefObject<HTMLDivElement | null>, dir: 'left' | 'right') {
+    if (ref.current) {
+      ref.current.scrollBy({ left: dir === 'right' ? 360 : -360, behavior: 'smooth' })
+    }
+  }
+  const [isScrolled, setIsScrolled] = useState(false)
 
   const qParam = searchParams.get('q') ?? ''
   useEffect(() => {
     setSearchInput(qParam)
   }, [qParam])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     async function loadMovies() {
@@ -177,7 +193,6 @@ export function CustomerHomePage({
         setLoading(false)
       }
     }
-
     void loadMovies()
   }, [debouncedSearch, api])
 
@@ -189,28 +204,132 @@ export function CustomerHomePage({
     }
   }
 
-  const updatedMovies = [...movies].sort((a, b) => b.id - a.id).slice(0, 4)
-  const upcomingMovies = movies.slice(0, 4).map((movie, idx) => ({
+  const upcomingMovies = movies.slice(0, 5).map((movie, idx) => ({
     ...movie,
     releaseText: `Khởi chiếu sau ${idx + 3} ngày`,
   }))
   const topRevenueMovies = [...movies]
     .sort((a, b) => b.rating - a.rating)
-    .slice(0, 4)
+    .slice(0, 7)
     .map((movie, idx) => ({
       ...movie,
       revenue: `${(2.1 - idx * 0.25).toFixed(2)} tỷ`,
     }))
 
   return (
-    <Layout className="customer-layout">
+    <Layout className="customer-layout cinematic-theme">
       {contextHolder}
-      <Header className="customer-header">
+
+      {/* ═══ STAFF COUNTER KIOSK MODE ═══ */}
+      {staffCounterMode ? (
+        <>
+          {/* Kiosk Header */}
+          <Header className="customer-header cinematic-header solid" style={{ zIndex: 100 }}>
+            <div className="customer-header-left">
+              <div className="counter-badge">
+                <span className="counter-live-dot" />
+                QUẦY BÁN VÉ
+              </div>
+              <div className="brand-block" style={{ cursor: 'pointer' }} onClick={() => handleMenuClick('hero')}>
+                <img src="/icons/cinema.svg" alt="Cinema logo" width={32} height={32} className="brand-glow" />
+                <Typography.Title level={4} style={{ margin: 0, color: '#fff' }}>
+                  CineStar<span style={{ color: '#5b7cff' }}>EX</span>
+                </Typography.Title>
+              </div>
+              <TopbarSearch
+                placeholder="Tìm phim nhanh..."
+                value={searchInput}
+                onChange={setSearchInput}
+                onEnter={() => handleMenuClick('phim-dang-chieu')}
+              />
+            </div>
+            <UserDropdown
+              username={currentUser.username}
+              role={currentUser.role}
+              onLogout={onLogout}
+              onBackToAdmin={onBackToAdmin}
+            />
+          </Header>
+
+          {/* Kiosk Body */}
+          <Content className="customer-content" style={{ padding: '90px 40px 40px', minHeight: '100vh', position: 'relative' }}>
+            <div className="ambient-orbs" style={{ zIndex: 0 }}>
+              <div className="orb blue-orb" />
+              <div className="orb purple-orb" />
+            </div>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              {/* Kiosk Title */}
+              <div className="kiosk-section-header">
+                <div>
+                  <Typography.Title level={2} className="gradient-text" style={{ marginBottom: 4 }}>
+                    CHỌN PHIM
+                  </Typography.Title>
+                  <Typography.Text style={{ color: '#8ea8ff' }}>
+                    {debouncedSearch.trim()
+                      ? `Tìm thấy ${movies.length} phim cho "${debouncedSearch.trim()}"`
+                      : `${movies.length} phim đang chiếu — nhấn để chọn suất và ghế ngồi`}
+                  </Typography.Text>
+                </div>
+                <div className="kiosk-time-display">
+                  <ClockCircleOutlined style={{ marginRight: 8, color: '#5b7cff' }} />
+                  {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+
+              {/* Kiosk Movie Grid */}
+              <div className="kiosk-movie-grid">
+                {loading
+                  ? Array.from({ length: 8 }).map((_, idx) => (
+                      <Card className="glow-card" key={idx} bordered={false}>
+                        <Skeleton active paragraph={{ rows: 3 }} />
+                      </Card>
+                    ))
+                  : movies.length === 0 ? (
+                      <div className="empty-state-cyber" style={{ gridColumn: '1 / -1' }}>
+                        Không tìm thấy phim nào.
+                      </div>
+                    )
+                  : movies.map((movie) => (
+                      <div
+                        key={movie.id}
+                        className="kiosk-movie-card"
+                        onClick={() => navigate(movieBookingPath(movie.id))}
+                      >
+                        {/* Poster */}
+                        <div className="kiosk-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }}>
+                          <div className="kiosk-poster-overlay">
+                            <PlayCircleOutlined className="kiosk-play-icon" />
+                          </div>
+                        </div>
+                        {/* Info */}
+                        <div className="kiosk-movie-info">
+                          <div className="kiosk-movie-name">{movie.name}</div>
+                          <div className="kiosk-movie-meta">
+                            <span className="kiosk-genre-tag">{movie.genre}</span>
+                            <span className="kiosk-duration"><ClockCircleOutlined style={{ marginRight: 4 }} />{movie.durationMinutes} phút</span>
+                          </div>
+                          <div className="kiosk-rating">
+                            <StarFilled style={{ color: '#ffb200', marginRight: 4 }} />
+                            <span>{Math.min(5, Number(movie.rating)).toFixed(1)}</span>
+                          </div>
+                          <Button type="primary" block className="btn-glow-primary kiosk-book-btn" onClick={(e) => { e.stopPropagation(); navigate(movieBookingPath(movie.id)) }}>
+                            CHỌN PHIM NÀY
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+              </div>
+            </div>
+          </Content>
+        </>
+      ) : (
+        <>
+      <Header className={`customer-header cinematic-header ${isScrolled ? 'solid' : 'transparent'}`}>
         <div className="customer-header-left">
-          <div className="brand-block">
-            <img src="/icons/cinema.svg" alt="Cinema logo" width={36} height={36} />
-            <Typography.Title level={4} style={{ margin: 0, color: '#fff' }}>
-              CineStar Experience
+          <div className="brand-block" style={{ cursor: 'pointer' }} onClick={() => handleMenuClick('hero')}>
+            <img src="/icons/cinema.svg" alt="Cinema logo" width={38} height={38} className="brand-glow" />
+            <Typography.Title level={4} style={{ margin: 0, color: '#fff' }} className="brand-text">
+              CineStar<span style={{ color: '#5b7cff' }}>EX</span>
             </Typography.Title>
           </div>
           <Menu
@@ -218,26 +337,18 @@ export function CustomerHomePage({
             selectedKeys={[activeMenu]}
             className="customer-menu"
             items={[
-              { key: 'phim-dang-chieu', label: 'Phim đang chiếu' },
-              { key: 'phim-moi-cap-nhat', label: 'Mới cập nhật' },
-              { key: 'phim-sap-chieu', label: 'Sắp chiếu' },
-              { key: 'phim-top-doanh-thu', label: 'Top doanh thu' },
-              { key: 'nghiep-vu', label: 'Nghiệp vụ' },
-              { key: 'uu-dai', label: 'Ưu đãi' },
-              { key: 'ho-tro', label: 'Hỗ trợ' },
+              { key: 'phim-dang-chieu', label: 'XEM PHIM' },
+              { key: 'phim-top-doanh-thu', label: 'HOT NHẤT' },
+              { key: 'nghiep-vu', label: 'DỊCH VỤ' },
+              { key: 'uu-dai', label: 'VOUCHER VIP' },
             ]}
             onClick={(info) => handleMenuClick(info.key)}
           />
           <TopbarSearch
-            placeholder="Tìm tên phim hoặc thể loại..."
+            placeholder="Tìm siêu phẩm..."
             value={searchInput}
             onChange={setSearchInput}
-            onEnter={() =>
-              document.getElementById('phim-dang-chieu')?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-              })
-            }
+            onEnter={() => handleMenuClick('phim-dang-chieu')}
           />
         </div>
 
@@ -250,366 +361,335 @@ export function CustomerHomePage({
         />
       </Header>
 
-      <Content className="customer-content">
-        <section className="section-spacing" id="hero">
-          <Carousel autoplay dots>
-            {heroSlides.map((slide) => (
-              <div key={slide.title}>
-                <div className="hero-slide">
-                  <Typography.Title level={2} style={{ color: '#fff', marginBottom: 8 }}>
-                    {slide.title}
-                  </Typography.Title>
-                  <Typography.Paragraph style={{ color: '#c5d3ff', fontSize: 16, marginBottom: 0 }}>
-                    {slide.subtitle}
-                  </Typography.Paragraph>
-                </div>
-              </div>
-            ))}
-          </Carousel>
-        </section>
-
-        <section className="section-spacing" id="phim-dang-chieu">
-          <Space orientation="vertical" size={4} className="section-header">
-            <Tag color="blue">Trang chủ</Tag>
-            <Typography.Title level={3} style={{ color: '#fff', margin: 0 }}>
-              Phim đang chiếu
-            </Typography.Title>
-            <Typography.Text style={{ color: '#9fb3ff' }}>
-              Cập nhật theo lịch phim hiện tại tại rạp.
-            </Typography.Text>
-            {debouncedSearch.trim() ? (
-              <Typography.Text style={{ color: '#c5d3ff', display: 'block' }}>
-                Kết quả cho &ldquo;{debouncedSearch.trim()}&rdquo; — {loading ? '…' : `${movies.length} phim`}
-              </Typography.Text>
-            ) : null}
-          </Space>
-
-          <div className="movie-grid-5">
-            {loading
-              ? Array.from({ length: 6 }).map((_, idx) => (
-                  <Card className="cinema-card" key={idx}>
-                    <Skeleton active paragraph={{ rows: 3 }} />
-                  </Card>
-                ))
-              : movies.length === 0 ? (
-                  <Card
-                    className="cinema-card"
-                    style={{ gridColumn: '1 / -1', maxWidth: 560, justifySelf: 'center' }}
+      <Content className="customer-content full-width">
+        {/* Full-width massive hero section */}
+        <section id="hero" className="hero-cinematic-banner">
+          {movies.length > 0 ? (
+            <Carousel autoplay effect="fade" pauseOnHover={false} speed={800} autoplaySpeed={5000} dots={{ className: 'hero-dots' }}>
+              {[...movies].sort((a, b) => b.rating - a.rating).slice(0, 5).map((movie) => (
+                <div key={`hero-slide-${movie.id}`}>
+                  <div 
+                    className="hero-slide-bg"
+                    style={{ backgroundImage: `url(${resolveHeroBanner(movie)})` }}
                   >
-                    <Typography.Paragraph style={{ color: '#b8c7ff', marginBottom: 0 }}>
-                      Không tìm thấy phim phù hợp. Thử từ khóa khác (tên hoặc thể loại) hoặc xóa ô tìm kiếm để
-                      xem toàn bộ phim.
-                    </Typography.Paragraph>
-                  </Card>
-                )
-              : movies.map((movie) => (
-                  <Card className="cinema-card movie-card" key={movie.id}>
-                    <Space orientation="vertical" size={10}>
-                      <div
-                        className="movie-poster"
-                        style={{
-                          backgroundImage: `url(${resolvePoster(movie)})`,
-                        }}
-                      />
-                      <Tag color="processing" icon={<PlayCircleOutlined />}>
-                        Đang chiếu
-                      </Tag>
-                      <Typography.Title level={4} style={{ margin: 0, color: '#fff' }}>
-                        {movie.name}
-                      </Typography.Title>
-                      <Typography.Text style={{ color: '#9fb3ff' }}>
-                        Thể loại: {movie.genre}
-                      </Typography.Text>
-                      <Space size={12}>
-                        <Typography.Text style={{ color: '#c5d3ff' }}>
-                          <ClockCircleOutlined /> {movie.durationMinutes} phút
-                        </Typography.Text>
-                        <Typography.Text style={{ color: '#ffd666' }}>
-                          <StarFilled /> {movie.rating.toFixed(1)}
-                        </Typography.Text>
-                      </Space>
-                      <Button type="primary" block onClick={() => navigate(movieBookingPath(movie.id))}>
-                        Đặt vé
-                      </Button>
-                    </Space>
-                  </Card>
+                    <div className="hero-overlay-dark">
+                      <div className="hero-content">
+                        <Space size="middle" className="hero-tags-wrapper" style={{ marginBottom: 10 }}>
+                          <Tag className="hero-tag pulse-glow" color="#f50">
+                            <FireOutlined /> TOP THỊNH HÀNH
+                          </Tag>
+                          <Tag className="hero-tag cyber-tag" color="cyan">
+                            4K IMAX
+                          </Tag>
+                          <Tag className="hero-tag outline-tag">
+                            {movie.genre}
+                          </Tag>
+                          <Tag className="hero-tag outline-tag">
+                            <ClockCircleOutlined style={{ marginRight: 4 }}/> {movie.durationMinutes} phút
+                          </Tag>
+                          <Tag className="hero-tag rating-tag" color="#ffb200">
+                            ★ {Math.min(5, Number(movie.rating)).toFixed(1)}
+                          </Tag>
+                        </Space>
+                        <Typography.Title className="hero-title">{movie.name}</Typography.Title>
+                        <Space size="large" className="hero-actions">
+                          <Button type="primary" size="large" className="btn-glow-primary" onClick={() => navigate(movieBookingPath(movie.id))}>
+                            Đặt Vé Ngay <PlayCircleOutlined />
+                          </Button>
+                          <Button size="large" className="btn-glass" onClick={() => handleMenuClick('uu-dai')}>
+                            Xem Ưu Đãi
+                          </Button>
+                        </Space>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Carousel>
+          ) : (
+            <Carousel autoplay effect="fade" pauseOnHover={false} speed={800} autoplaySpeed={5000}>
+              {heroSlides.map((slide, idx) => (
+                <div key={slide.title}>
+                  <div 
+                    className="hero-slide-bg"
+                    style={{ backgroundImage: `url(${allHeroBanners[idx % allHeroBanners.length]})` }}
+                  >
+                    <div className="hero-overlay-dark">
+                      <div className="hero-content">
+                        <Tag className="hero-tag pulse-glow"><FireOutlined /> Now Showing</Tag>
+                        <Typography.Title className="hero-title">{slide.title}</Typography.Title>
+                        <Typography.Paragraph className="hero-subtitle">{slide.subtitle}</Typography.Paragraph>
+                        <Space size="large" className="hero-actions">
+                          <Button type="primary" size="large" className="btn-glow-primary" onClick={() => handleMenuClick('phim-dang-chieu')}>
+                            Khám Phá <PlayCircleOutlined />
+                          </Button>
+                        </Space>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Carousel>
+          )}
+          <div className="bottom-fader"></div>
+        </section>
+
+        {/* Floating Ambient Lighting */}
+        <div className="ambient-orbs">
+          <div className="orb blue-orb"></div>
+          <div className="orb purple-orb"></div>
+        </div>
+
+        <div className="container-centered">
+          <section className="section-spacing section-relative" id="phim-dang-chieu">
+            <Space orientation="vertical" size={0} className="cinematic-section-header">
+              <Typography.Title level={2} className="gradient-text">PHIM ĐANG CHIẾU</Typography.Title>
+              <Typography.Text className="section-subtitle">Tận hưởng những giây phút choáng ngợp tại rạp.</Typography.Text>
+              {debouncedSearch.trim() && (
+                <Typography.Text style={{ color: '#00e5ff', marginTop: '10px', display: 'block' }}>
+                  Tìm thấy {movies.length} phim cho "{debouncedSearch.trim()}"
+                </Typography.Text>
+              )}
+            </Space>
+
+            <div className="horizontal-section-wrapper">
+              <Button className="scroll-btn-left" icon={<LeftOutlined />} onClick={() => scrollSection(scrollNowRef, 'left')} />
+              <div className="horizontal-scroll-container hide-scrollbar" ref={scrollNowRef}>
+                {loading
+                  ? Array.from({ length: 6 }).map((_, idx) => (
+                      <div className="horizontal-card-wrapper" style={{ width: 220 }} key={idx}>
+                        <Card className="glow-card" bordered={false} style={{ height: 340 }}>
+                          <Skeleton active paragraph={{ rows: 4 }} />
+                        </Card>
+                      </div>
+                    ))
+                  : movies.length === 0 ? (
+                      <div className="empty-state-cyber" style={{ width: '100%' }}>
+                        Không tìm thấy siêu phẩm nào phù hợp. Bạn hãy thử tìm tên khác!
+                      </div>
+                    )
+                  : movies.map((movie) => (
+                      <div className="horizontal-card-wrapper" style={{ width: 220 }} key={movie.id}>
+                        <Card className="glow-card movie-card-3d" bordered={false} style={{ height: '100%' }}>
+                          <div className="poster-container">
+                            <div
+                              className="movie-poster"
+                              style={{ backgroundImage: `url(${resolvePoster(movie)})` }}
+                            />
+                            <div className="poster-overlay">
+                              <PlayCircleOutlined className="play-icon-large" />
+                            </div>
+                          </div>
+                          <div className="card-content">
+                            <Typography.Title level={4} className="movie-title">{movie.name}</Typography.Title>
+                            <Space className="movie-meta" split={<span style={{ color: '#445' }}>•</span>}>
+                              <span>{movie.genre}</span>
+                              <span>{movie.durationMinutes} phút</span>
+                            </Space>
+                            <div className="movie-rating-row">
+                              <StarFilled className="star-icon" />
+                              <span className="rating-score">{Math.min(5, Number(movie.rating)).toFixed(1)}</span>
+                            </div>
+                            <Button type="primary" block className="btn-glow-small" onClick={() => navigate(movieBookingPath(movie.id))}>
+                              MUA VÉ NGAY
+                            </Button>
+                          </div>
+                        </Card>
+                      </div>
+                    ))}
+              </div>
+              <Button className="scroll-btn-right" icon={<RightOutlined />} onClick={() => scrollSection(scrollNowRef, 'right')} />
+            </div>
+          </section>
+
+          <section className="section-spacing section-relative" id="phim-top-doanh-thu">
+            <Space orientation="vertical" size={0} className="cinematic-section-header">
+              <Typography.Title level={2} className="gradient-text gold">TOP DOANH THU</Typography.Title>
+              <Typography.Text className="section-subtitle">Đỉnh cao phòng vé tuần qua.</Typography.Text>
+            </Space>
+
+            <div className="ranking-table">
+              {/* Header */}
+              <div className="ranking-header">
+                <span className="rank-col">HẠNG</span>
+                <span className="movie-col">PHIM</span>
+                <span className="genre-col">THỂ LOẠI</span>
+                <span className="rating-col">ĐIỂM</span>
+                <span className="revenue-col">DOANH THU</span>
+              </div>
+              {topRevenueMovies.map((movie, idx) => (
+                <div
+                  key={`top-${movie.id}`}
+                  className={`ranking-row ${idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : ''}`}
+                  onClick={() => navigate(movieBookingPath(movie.id))}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Rank badge */}
+                  <span className="rank-col">
+                    <span className={`rank-number rank-${idx + 1}`}>
+                      {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                    </span>
+                  </span>
+
+                  {/* Poster + Name */}
+                  <span className="movie-col">
+                    <div className="ranking-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
+                    <div className="ranking-movie-info">
+                      <div className="ranking-movie-name">{movie.name}</div>
+                      <div className="ranking-movie-duration">{movie.durationMinutes} phút</div>
+                    </div>
+                  </span>
+
+                  {/* Genre */}
+                  <span className="genre-col">
+                    <span className="ranking-genre-tag">{movie.genre}</span>
+                  </span>
+
+                  {/* Rating */}
+                  <span className="rating-col">
+                    <span className="ranking-rating">
+                      <StarFilled style={{ marginRight: 4, color: '#ffb200' }} />
+                      {movie.rating.toFixed(1)}
+                    </span>
+                  </span>
+
+                  {/* Revenue */}
+                  <span className="revenue-col">
+                    <span className="ranking-revenue">{movie.revenue}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+
+          <section className="section-spacing section-relative" id="phim-sap-chieu">
+            <Space orientation="vertical" size={0} className="cinematic-section-header">
+              <Typography.Title level={2} className="gradient-text purple">SẮP KHỞI CHIẾU</Typography.Title>
+              <Typography.Text className="section-subtitle">Lên lịch ngay, không bỏ lỡ siêu phẩm.</Typography.Text>
+            </Space>
+
+            <div className="horizontal-section-wrapper">
+              <Button className="scroll-btn-left" icon={<LeftOutlined />} onClick={() => scrollSection(scrollUpcomingRef, 'left')} />
+              <div className="horizontal-scroll-container hide-scrollbar" ref={scrollUpcomingRef}>
+                {upcomingMovies.map((movie) => (
+                  <div className="horizontal-card-wrapper" key={`upcoming-${movie.id}`}>
+                    <Card className="glow-card horizontal-movie-card purple-glow" bordered={false}>
+                      <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
+                      <div className="horizontal-card-body">
+                        <Typography.Title level={5} className="movie-title-small">{movie.name}</Typography.Title>
+                        <Typography.Text className="purple-text">{movie.releaseText}</Typography.Text>
+                      </div>
+                    </Card>
+                  </div>
                 ))}
-          </div>
-        </section>
+              </div>
+              <Button className="scroll-btn-right" icon={<RightOutlined />} onClick={() => scrollSection(scrollUpcomingRef, 'right')} />
+            </div>
+          </section>
 
-        <section className="section-spacing" id="phim-moi-cap-nhat">
-          <Space orientation="vertical" size={4} className="section-header">
-            <Tag color="cyan">Cập nhật</Tag>
-            <Typography.Title level={3} style={{ color: '#fff', margin: 0 }}>
-              Phim mới cập nhật
-            </Typography.Title>
-            <Typography.Text style={{ color: '#9fb3ff' }}>
-              Danh sách phim vừa được bổ sung, ưu tiên hiển thị trên trang chủ.
-            </Typography.Text>
-          </Space>
-          <div className="movie-grid-5">
-            {updatedMovies.map((movie) => (
-              <Card className="cinema-card movie-card compact-card" key={`new-${movie.id}`}>
-                <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
-                <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
-                  {movie.name}
-                </Typography.Title>
-                <Tag color="geekblue">Mới cập nhật</Tag>
-              </Card>
-            ))}
-          </div>
-        </section>
+          <section className="section-spacing section-relative" id="nghiep-vu">
+             <Space orientation="vertical" size={0} className="cinematic-section-header">
+              <Typography.Title level={2} className="gradient-text cyan">HỆ SINH THÁI DỊCH VỤ</Typography.Title>
+              <Typography.Text className="section-subtitle">Vượt mọi rào cản, đặt vé chỉ trong tích tắc.</Typography.Text>
+            </Space>
 
-        <section className="section-spacing" id="phim-sap-chieu">
-          <Space orientation="vertical" size={4} className="section-header">
-            <Tag color="purple">Coming Soon</Tag>
-            <Typography.Title level={3} style={{ color: '#fff', margin: 0 }}>
-              Phim sắp chiếu
-            </Typography.Title>
-            <Typography.Text style={{ color: '#9fb3ff' }}>
-              Các tựa phim sắp khởi chiếu để khách hàng đặt lịch trước.
-            </Typography.Text>
-          </Space>
-          <div className="movie-grid-5">
-            {upcomingMovies.map((movie) => (
-              <Card className="cinema-card movie-card compact-card" key={`upcoming-${movie.id}`}>
-                <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
-                <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
-                  {movie.name}
-                </Typography.Title>
-                <Typography.Text style={{ color: '#c5d3ff' }}>{movie.releaseText}</Typography.Text>
-                <Button type="primary" block size="middle" style={{ marginTop: 10 }}>
-                  Đặt nhắc lịch
-                </Button>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section className="section-spacing" id="phim-top-doanh-thu">
-          <Space orientation="vertical" size={4} className="section-header">
-            <Tag color="gold">Top doanh thu</Tag>
-            <Typography.Title level={3} style={{ color: '#fff', margin: 0 }}>
-              Phim Top doanh thu
-            </Typography.Title>
-            <Typography.Text style={{ color: '#9fb3ff' }}>
-              Nhóm phim có hiệu suất bán vé cao nhất hệ thống.
-            </Typography.Text>
-          </Space>
-          <div className="movie-grid-5">
-            {topRevenueMovies.map((movie, idx) => (
-              <Card className="cinema-card movie-card compact-card top-revenue-card" key={`top-${movie.id}`}>
-                <Tag color="gold">Top #{idx + 1}</Tag>
-                <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
-                <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
-                  {movie.name}
-                </Typography.Title>
-                <Space size={10}>
-                  <Typography.Text style={{ color: '#ffd666' }}>
-                    <StarFilled /> {movie.rating.toFixed(1)}
-                  </Typography.Text>
-                  <Typography.Text style={{ color: '#73d13d' }}>Doanh thu: {movie.revenue}</Typography.Text>
-                </Space>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section className="section-spacing" id="nghiep-vu">
-          <Space orientation="vertical" size={4} className="section-header">
-            <Tag color="processing">Nghiệp vụ</Tag>
-            <Typography.Title level={3} style={{ color: '#fff', margin: 0 }}>
-              Mục nghiệp vụ nổi bật
-            </Typography.Title>
-            <Typography.Text style={{ color: '#9fb3ff' }}>
-              Bố cục trang chủ theo chuẩn business cho nền tảng đặt vé online.
-            </Typography.Text>
-          </Space>
-
-          <Row gutter={[16, 16]}>
-            {businessSections.map((section) => (
-              <Col xs={24} sm={12} key={section.title}>
-                <Card className="cinema-card">
-                  <Space>
-                    <div className="business-icon">{section.icon}</div>
-                    <Space orientation="vertical" size={4}>
-                      <Typography.Title level={5} style={{ color: '#fff', margin: 0 }}>
+            <Row gutter={[24, 24]}>
+              {businessSections.map((section) => (
+                <Col xs={24} sm={12} key={section.title}>
+                  <Card className="cyber-feature-card" bordered={false}>
+                    <div className="feature-icon-wrapper">{section.icon}</div>
+                    <div className="feature-content">
+                      <Typography.Title level={4} className="feature-title">
                         {section.title}
                       </Typography.Title>
-                      <Typography.Text style={{ color: '#c5d3ff' }}>{section.desc}</Typography.Text>
-                    </Space>
-                  </Space>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </section>
+                      <Typography.Text className="feature-desc">{section.desc}</Typography.Text>
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </section>
 
-        <section className="section-spacing" id="uu-dai">
-          <Space orientation="vertical" size={4} className="section-header">
-            <Tag color="magenta">Promotion</Tag>
-            <Typography.Title level={3} style={{ color: '#fff', margin: 0 }}>
-              Ưu đãi và sự kiện
-            </Typography.Title>
-            <Typography.Text style={{ color: '#9fb3ff' }}>
-              Các chương trình khuyến mãi và chiến dịch marketing đang diễn ra.
-            </Typography.Text>
-          </Space>
+          <section className="section-spacing section-relative" id="uu-dai">
+             <Space orientation="vertical" size={0} className="cinematic-section-header">
+              <Typography.Title level={2} className="gradient-text pink">VOUCHER VIP</Typography.Title>
+            </Space>
 
-          <Row gutter={[16, 16]}>
-            {promoCards.map((promo) => (
-              <Col xs={24} md={8} key={promo.title}>
-                <Card className="cinema-card promo-card">
-                  <img src={promo.image} alt={promo.title} className="promo-image" />
-                  <Typography.Title level={5} style={{ color: '#fff', marginBottom: 8 }}>
-                    {promo.title}
-                  </Typography.Title>
-                  <Typography.Text style={{ color: '#c5d3ff' }}>{promo.desc}</Typography.Text>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        </section>
+            <Row gutter={[24, 24]}>
+              {promoCards.map((promo) => (
+                <Col xs={24} md={8} key={promo.title}>
+                  <Card className="glass-promo-card" bordered={false}>
+                    <div className="promo-img-wrapper">
+                      <img src={promo.image} alt={promo.title} />
+                    </div>
+                    <div className="promo-body">
+                      <Typography.Title level={4} className="promo-title">{promo.title}</Typography.Title>
+                      <Typography.Text className="promo-desc">{promo.desc}</Typography.Text>
+                    </div>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          </section>
 
-        <section className="section-spacing" id="ho-tro">
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={12}>
-              <Card className="cinema-card">
-                <Typography.Title level={4} style={{ marginTop: 0, color: '#fff' }}>
-                  Tiêu chuẩn dịch vụ
-                </Typography.Title>
-                <Space orientation="vertical">
-                  <Typography.Text style={{ color: '#c5d3ff' }}>
-                    <SafetyCertificateOutlined /> Quy trình đặt vé an toàn, thanh toán minh bạch.
-                  </Typography.Text>
-                  <Typography.Text style={{ color: '#c5d3ff' }}>
-                    <SafetyCertificateOutlined /> Check-in QR nhanh tại cổng vào.
-                  </Typography.Text>
-                  <Typography.Text style={{ color: '#c5d3ff' }}>
-                    <SafetyCertificateOutlined /> Hỗ trợ khách hàng 24/7.
-                  </Typography.Text>
-                </Space>
-              </Card>
-            </Col>
-            <Col xs={24} md={12}>
-              <Card className="cinema-card">
-                <Space orientation="vertical" size={12} style={{ width: '100%' }}>
-                  <Typography.Title level={4} style={{ marginTop: 0, color: '#fff' }}>
-                    FAQ / Hỗ trợ nhanh
-                  </Typography.Title>
-                  <Collapse
-                    ghost
-                    items={faqItems}
-                    expandIconPlacement="end"
-                    style={{ color: '#c5d3ff' }}
-                  />
-                  <Typography.Text style={{ color: '#9fb3ff' }}>
-                    <QrcodeOutlined /> Hỗ trợ check-in QR tại tất cả cửa vào.
-                  </Typography.Text>
-                </Space>
-              </Card>
-            </Col>
-          </Row>
-        </section>
+        </div>
       </Content>
 
-      <Footer className="customer-footer">
-        <div className="business-footer">
-          <Row gutter={[20, 20]}>
+      <Footer className="customer-footer cinematic-footer">
+        <div className="business-footer glass-footer">
+          <Row gutter={[30, 30]}>
             <Col xs={24} md={8}>
-              <Space orientation="vertical" size={10}>
-                <div className="brand-block" style={{ marginBottom: 0 }}>
-                  <img src="/icons/cinema.svg" alt="Cinema logo" width={34} height={34} />
-                  <Typography.Title level={5} style={{ margin: 0, color: '#fff' }}>
-                    CineStar Experience
+              <Space orientation="vertical" size={16}>
+                <div className="brand-block">
+                  <img src="/icons/cinema.svg" alt="Cinema logo" width={40} height={40} className="brand-glow" />
+                  <Typography.Title level={4} style={{ margin: 0, color: '#fff' }}>
+                    CineStar<span style={{ color: '#5b7cff' }}>EX</span>
                   </Typography.Title>
                 </div>
-                <Typography.Text style={{ color: '#c5d3ff' }}>
-                  Nền tảng đặt vé trực tuyến cho hệ thống rạp chiếu phim. Quản lý suất chiếu,
-                  ghế ngồi, thanh toán và check-in QR theo thời gian thực.
-                </Typography.Text>
-                <Typography.Text style={{ color: '#9fb3ff' }}>
-                  Giờ hoạt động: 08:00 - 23:30 (T2 - CN)
+                <Typography.Text className="footer-mute-text">
+                  Khai tử sự nhàm chán. CineStarEx tái định nghĩa không gian đặt vé phim với trải nghiệm hình ảnh tuyệt mỹ và tốc độ không đối thủ.
                 </Typography.Text>
               </Space>
             </Col>
 
             <Col xs={24} md={8}>
-              <Space orientation="vertical" size={8}>
-                <Typography.Title level={5} style={{ margin: 0, color: '#fff' }}>
-                  Trung tâm hỗ trợ
+              <Space orientation="vertical" size={12}>
+                <Typography.Title level={5} className="footer-heading">
+                  Tổng Đài Hologram
                 </Typography.Title>
-                <Typography.Text style={{ color: '#c5d3ff' }}>
-                  Hotline: 1900 1234
-                </Typography.Text>
-                <Typography.Text style={{ color: '#c5d3ff' }}>
-                  Email: hotro@cinestar.vn
-                </Typography.Text>
-                <Typography.Text style={{ color: '#c5d3ff' }}>
-                  Địa chỉ: 123 Nguyễn Văn Cừ, Q.5, TP.HCM
-                </Typography.Text>
-                <Space size={8} wrap>
-                  <Tag color="processing">Điều khoản sử dụng</Tag>
-                  <Tag color="processing">Chính sách bảo mật</Tag>
-                  <Tag color="processing">Quy định hoàn vé</Tag>
+                <Typography.Text className="footer-mute-text">Hotline 24/7: 1900 1234</Typography.Text>
+                <Typography.Text className="footer-mute-text">Support: hotro@cinestarex.io</Typography.Text>
+                <Space size={8} wrap style={{ marginTop: 10 }}>
+                  <Tag className="cyber-tag">Bảo Mật Ánh Sáng</Tag>
+                  <Tag className="cyber-tag">Luật Vũ Trụ</Tag>
                 </Space>
               </Space>
             </Col>
 
             <Col xs={24} md={8}>
-              <Space orientation="vertical" size={10} style={{ width: '100%' }}>
-                <Typography.Title level={5} style={{ margin: 0, color: '#fff' }}>
-                  Kết nối với chúng tôi
+              <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+                <Typography.Title level={5} className="footer-heading">
+                  Mạng Lưới Thần Kinh
                 </Typography.Title>
-
-                <div className="social-card">
-                  <ul>
-                    <li className="social-iso-pro">
-                      <span />
-                      <span />
-                      <span />
-                      <a href="https://facebook.com" target="_blank" rel="noreferrer">
-                        <svg viewBox="0 0 320 512" xmlns="http://www.w3.org/2000/svg" className="social-svg">
-                          <path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" />
-                        </svg>
-                      </a>
-                      <div className="social-text">Facebook</div>
-                    </li>
-                    <li className="social-iso-pro">
-                      <span />
-                      <span />
-                      <span />
-                      <a href="https://x.com" target="_blank" rel="noreferrer">
-                        <svg className="social-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                          <path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z" />
-                        </svg>
-                      </a>
-                      <div className="social-text">Twitter</div>
-                    </li>
-                    <li className="social-iso-pro">
-                      <span />
-                      <span />
-                      <span />
-                      <a href="https://instagram.com" target="_blank" rel="noreferrer">
-                        <svg className="social-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
-                          <path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z" />
-                        </svg>
-                      </a>
-                      <div className="social-text">Instagram</div>
-                    </li>
-                  </ul>
-                </div>
+                <Space size={16}>
+                  <Button shape="circle" icon={<StarFilled />} className="social-btn" />
+                  <Button shape="circle" icon={<CheckSquareOutlined />} className="social-btn" />
+                  <Button shape="circle" icon={<BellOutlined />} className="social-btn" />
+                </Space>
               </Space>
             </Col>
           </Row>
 
           <div className="footer-bottom">
-            <Typography.Text style={{ color: '#9fb3ff' }}>
-              © {new Date().getFullYear()} CineStar Experience. Bản quyền thuộc hệ thống quản lý rạp phim.
+            <Typography.Text className="footer-mute-text text-center" style={{ display: 'block' }}>
+              © {new Date().getFullYear()} CineStarEX. The future of cinema ticketing.
             </Typography.Text>
           </div>
         </div>
       </Footer>
+        </>
+      )}
     </Layout>
   )
 }

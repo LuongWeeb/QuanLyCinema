@@ -5,7 +5,7 @@ import {
   QrcodeOutlined,
   TeamOutlined,
 } from '@ant-design/icons'
-import { Card, Col, Row, Space, Statistic, Tag, Typography } from 'antd'
+import { Card, Col, Row, Statistic, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PendingApprovalsPanel } from '../../components/admin/PendingApprovalsPanel'
@@ -54,16 +54,19 @@ const modules: {
   },
 ]
 
-export function DashboardHome() {
+export function DashboardHome({ isAdmin }: { isAdmin: boolean }) {
   const navigate = useNavigate()
+  const modulesToShow = isAdmin
+    ? modules
+    : // Staff chỉ duyệt đơn/chờ thanh toán; không hiển thị các module admin-only.
+      []
   return (
-    <>
-      <Typography.Title level={2} style={{ color: '#fff', marginTop: 0 }}>
-        Hệ thống quản lý rạp phim
+    <div className="fade-in-up">
+      <Typography.Title level={2} className="gradient-text cyan" style={{ marginTop: 0, marginBottom: 10 }}>
+        TRUNG TÂM KIỂM SOÁT
       </Typography.Title>
-      <Typography.Paragraph style={{ color: '#b8c7ff' }}>
-        Chọn module ở menu bên trái để quản lý phim, phòng chiếu, ghế và lịch chiếu. Khách hàng đặt vé qua trang chủ sau
-        khi đã có suất chiếu.
+      <Typography.Paragraph style={{ color: '#8ea8ff', fontSize: '1.1rem' }}>
+        Quản lý hệ thống chiếu phim, phòng chiếu, và dữ liệu doanh thu thời gian thực.
       </Typography.Paragraph>
 
       <div style={{ marginBottom: 20 }}>
@@ -72,62 +75,65 @@ export function DashboardHome() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 14 }}>
         <Col xs={24} sm={8}>
-          <Card className="cinema-card">
+          <Card className="glow-card" bordered={false}>
             <Statistic
-              title="Module quản trị"
+              title={<span style={{ color: '#8ea8ff' }}>MODULE QUẢN TRỊ</span>}
               value={6}
-              styles={{ content: { color: '#d6e4ff' } }}
+              valueStyle={{ color: '#00f2fe', fontWeight: 'bold', fontSize: '2.5rem' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card className="cinema-card">
+          <Card className="glow-card" bordered={false}>
             <Statistic
-              title="API đặt vé"
-              value="Live"
-              styles={{ content: { color: '#d6e4ff' } }}
+              title={<span style={{ color: '#8ea8ff' }}>TRẠNG THÁI API ĐẶT VÉ</span>}
+              value="ACTIVATE"
+              valueStyle={{ color: '#00fa9a', fontWeight: 'bold', fontSize: '2.5rem', textShadow: '0 0 10px rgba(0, 250, 154, 0.4)' }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card className="cinema-card">
+          <Card className="glow-card" bordered={false}>
             <Statistic
-              title="Thanh toán"
-              value="Demo"
-              suffix="flow"
-              styles={{ content: { color: '#d6e4ff' } }}
+              title={<span style={{ color: '#8ea8ff' }}>HỆ THỐNG THANH TOÁN</span>}
+              value="SECURE"
+              suffix={<span style={{ fontSize: '1rem', color: '#5b7cff' }}>FLOW</span>}
+              valueStyle={{ color: '#d8b4fe', fontWeight: 'bold', fontSize: '2.5rem' }}
             />
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]}>
-        {modules.map((module) => (
+      <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
+        {modulesToShow.map((module, index) => (
           <Col xs={24} md={12} xl={8} key={module.title}>
-            <Card
-              className="cinema-card module-card"
-              hoverable={Boolean(module.path)}
+            <div
+              className={`cyber-feature-card fade-in-up`}
               onClick={module.path ? () => navigate(module.path!) : undefined}
-              style={module.path ? { cursor: 'pointer' } : undefined}
+              style={{ cursor: module.path ? 'pointer' : 'default', animationDelay: `${index * 0.1}s` }}
             >
-              <Space orientation="vertical" size={10}>
-                <Typography.Text style={{ color: '#8ea8ff', fontSize: 20 }}>{module.icon}</Typography.Text>
-                <Typography.Title level={4} style={{ margin: 0, color: '#fff' }}>
-                  {module.title}
-                </Typography.Title>
-                <Typography.Paragraph style={{ marginBottom: 0, color: '#b8c7ff' }}>
-                  {module.desc}
-                </Typography.Paragraph>
-                <Tag color="processing">{module.badge}</Tag>
-              </Space>
-            </Card>
+              <div className="feature-icon-wrapper">
+                {module.icon}
+              </div>
+              <Typography.Title level={4} className="feature-title">
+                {module.title}
+              </Typography.Title>
+              <Typography.Paragraph className="feature-desc">
+                {module.desc}
+              </Typography.Paragraph>
+              <div style={{ marginTop: 'auto' }}>
+                <span className="cyber-tag">{module.badge}</span>
+              </div>
+            </div>
           </Col>
         ))}
       </Row>
 
-      <div style={{ marginTop: 16 }}>
-        <UserRoleManagementCard />
-      </div>
-    </>
+      {isAdmin ? (
+        <div style={{ marginTop: 24, animation: 'fadeInUp 1s ease-out 0.6s both' }}>
+          <UserRoleManagementCard />
+        </div>
+      ) : null}
+    </div>
   )
 }

@@ -84,8 +84,10 @@ export function MovieBookingPage({
       try {
         const [m, st] = await Promise.all([getMovieDetail(id), listShowtimes(id)])
         setMovie(m)
-        setShowtimes(st)
-        if (st.length === 0) {
+        const nowMs = Date.now()
+        const futureShowtimes = st.filter((x) => dayjs(x.startTime).valueOf() > nowMs)
+        setShowtimes(futureShowtimes)
+        if (futureShowtimes.length === 0) {
           message.warning('Phim này chưa có suất chiếu. Vui lòng quay lại sau.')
         }
       } catch (e) {
@@ -201,7 +203,7 @@ export function MovieBookingPage({
         />
 
         {movie ? (
-          <Card className="cinema-card" loading={loading}>
+          <Card className="glow-card" bordered={false} loading={loading}>
             {(() => {
               const poster = resolveUploadedPosterUrl(movie.posterUrl)
               return (
@@ -260,8 +262,8 @@ export function MovieBookingPage({
         ) : null}
 
         {step === 0 && (
-          <Card className="cinema-card" style={{ marginTop: 16 }} title={<span style={{ color: '#fff' }}>Chọn suất chiếu</span>}>
-            <Typography.Paragraph style={{ color: '#b8c7ff' }}>
+          <Card className="glow-card" style={{ marginTop: 16 }} bordered={false} title={<span style={{ color: '#fff', fontSize: '1.2rem' }}>CHỌN TOẠ ĐỘ & SUẤT CHIẾU</span>}>
+            <Typography.Paragraph style={{ color: '#8ea8ff' }}>
               Mỗi suất gắn với một phòng cụ thể. Sau bước này bạn chọn ghế trong phòng đó.
             </Typography.Paragraph>
             {staffCounterMode ? (
@@ -285,30 +287,32 @@ export function MovieBookingPage({
                 </Typography.Paragraph>
               </div>
             ) : null}
-            <Space orientation="vertical" style={{ width: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', width: '100%' }}>
               {showtimes.map((s) => (
-                <Button
+                <button
                   key={s.id}
-                  block
-                  type={showtimeId === s.id ? 'primary' : 'default'}
-                  onClick={() => {
-                    setShowtimeId(s.id)
-                  }}
-                  style={{ textAlign: 'left', height: 'auto', padding: '12px 16px' }}
+                  type="button"
+                  className={`ticket-showtime-btn ${showtimeId === s.id ? 'ant-btn-primary' : ''}`}
+                  onClick={() => setShowtimeId(s.id)}
                 >
-                  <div>
-                    <strong>{s.auditorium?.name ?? `Phòng #${s.auditoriumId}`}</strong>
-                    <div style={{ color: 'inherit', opacity: 0.85 }}>
-                      {dayjs(s.startTime).format('DD/MM/YYYY HH:mm')} — từ{' '}
-                      {Number(s.price).toLocaleString('vi-VN')} ₫ / ghế thường · VIP ×{VIP_PRICE_MULTIPLIER}
+                  <div style={{ flex: 1 }}>
+                    <Typography.Title level={4} style={{ color: '#fff', marginTop: 0, marginBottom: 8, fontSize: '1.25rem' }}>
+                      {s.auditorium?.name ?? `Phòng #${s.auditoriumId}`}
+                    </Typography.Title>
+                    <div style={{ color: '#8ea8ff', opacity: 0.9, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span><strong style={{color: '#fff'}}>🕒 Giờ chiếu:</strong> {dayjs(s.startTime).format('DD/MM/YYYY HH:mm')}</span>
+                      <span><strong style={{color: '#fff'}}>🎟️ Giá vé:</strong> {Number(s.price).toLocaleString('vi-VN')} ₫ <small style={{ opacity: 0.7 }}>(Thường)</small></span>
+                      <span className="gold-text">⭐ VIP ×{VIP_PRICE_MULTIPLIER}</span>
                     </div>
                   </div>
-                </Button>
+                </button>
               ))}
-            </Space>
+            </div>
             <Button
               type="primary"
-              style={{ marginTop: 16 }}
+              className="btn-glow-primary"
+              size="large"
+              style={{ marginTop: 24, padding: '0 40px' }}
               disabled={!showtimeId}
               onClick={() => {
                 if (showtimeId) {
@@ -323,9 +327,11 @@ export function MovieBookingPage({
         )}
 
         {step === 1 && selectedShowtime && (
-          <Card className="cinema-card" style={{ marginTop: 16 }} title={<span style={{ color: '#fff' }}>Chọn ghế</span>}>
-            <Typography.Text style={{ color: '#b8c7ff' }}>
-              Phòng: <strong style={{ color: '#fff' }}>{selectedShowtime.auditorium?.name}</strong> — Giờ:{' '}
+          <div className="animate-slide-up">
+          <Card className="glow-card" style={{ marginTop: 16, textAlign: 'center' }} bordered={false}>
+            <div className="cinema-screen-curve">MÀN HÌNH</div>
+            <Typography.Text style={{ color: '#b8c7ff', fontSize: '1.1rem' }}>
+              Phòng chiếu: <strong style={{ color: '#00f2fe' }}>{selectedShowtime.auditorium?.name}</strong> | Giờ chiếu:{' '}
               {dayjs(selectedShowtime.startTime).format('DD/MM/YYYY HH:mm')}
             </Typography.Text>
             <div className="booking-seat-grid" style={{ marginTop: 16 }}>
@@ -346,56 +352,90 @@ export function MovieBookingPage({
                 )
               })}
             </div>
-            <Space style={{ marginTop: 16 }} wrap>
-              <Tag color="default">Trống</Tag>
-              <Tag color="gold">VIP (×{VIP_PRICE_MULTIPLIER})</Tag>
-              <Tag color="processing">Đang chọn</Tag>
-              <Tag color="error">Đã bán / giữ</Tag>
+            <Space style={{ marginTop: 24, justifyContent: 'center', width: '100%' }} wrap>
+              <Tag className="hero-tag outline-tag">Trống</Tag>
+              <Tag className="hero-tag rating-tag">VIP</Tag>
+              <Tag className="hero-tag cyber-tag" style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', color: '#000' }}>Đang chọn</Tag>
+              <Tag className="hero-tag" style={{ border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.4)', background: 'rgba(30,30,40,0.6)' }}>Đã bán</Tag>
             </Space>
-            <Space style={{ marginTop: 16 }}>
-              <Button onClick={() => setStep(0)}>Quay lại</Button>
-              <Button type="primary" disabled={selectedSeats.length === 0} onClick={() => setStep(2)}>
+            <Space style={{ marginTop: 30, justifyContent: 'center', width: '100%' }} size="large">
+              <Button size="large" className="btn-glass" onClick={() => setStep(0)}>Quay lại</Button>
+              <Button type="primary" size="large" className="btn-glow-primary" disabled={selectedSeats.length === 0} onClick={() => setStep(2)}>
                 Tiếp tục
               </Button>
             </Space>
           </Card>
+          </div>
         )}
 
         {step === 2 && selectedShowtime && (
-          <Card className="cinema-card" style={{ marginTop: 16 }} title={<span style={{ color: '#fff' }}>Xác nhận</span>}>
-            <Typography.Paragraph style={{ color: '#b8c7ff' }}>
-              Số ghế: {selectedSeats.length} — Giá suất (thường):{' '}
-              {Number(selectedShowtime.price).toLocaleString('vi-VN')} ₫ · VIP nhân {VIP_PRICE_MULTIPLIER}
-            </Typography.Paragraph>
-            <Typography.Title level={4} style={{ color: '#ffd666' }}>
-              Tạm tính: {estimatedSeatTotal.toLocaleString('vi-VN')} ₫
-            </Typography.Title>
-            <Space>
-              <Button onClick={() => setStep(1)}>Quay lại</Button>
-              <Button type="primary" icon={<CheckCircleOutlined />} onClick={() => void submitReserve()}>
-                Đặt ghế
-              </Button>
-            </Space>
-          </Card>
+          <div className="animate-slide-up">
+            <Card className="glass-receipt-card" style={{ marginTop: 16, marginInline: 'auto', maxWidth: 600 }} bordered={false}>
+              <Typography.Title level={3} style={{ color: '#fff', textAlign: 'center', marginBottom: 24, letterSpacing: 2 }}>
+                XÁC NHẬN VÉ
+              </Typography.Title>
+              
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: 20, borderRadius: 12 }}>
+                <Typography.Paragraph style={{ color: '#8ea8ff', fontSize: '1.1rem', marginBottom: 8 }}>
+                  Khán phòng: <strong style={{ color: '#fff' }}>{selectedShowtime.auditorium?.name}</strong>
+                </Typography.Paragraph>
+                <Typography.Paragraph style={{ color: '#8ea8ff', fontSize: '1.1rem', marginBottom: 8 }}>
+                  Suất chiếu: <strong style={{ color: '#fff' }}>{dayjs(selectedShowtime.startTime).format('DD/MM/YYYY HH:mm')}</strong>
+                </Typography.Paragraph>
+                <div className="receipt-divider" />
+                <Typography.Paragraph style={{ color: '#8ea8ff', fontSize: '1.1rem', marginBottom: 8 }}>
+                  Số ghế: <strong style={{ color: '#00f2fe' }}>{selectedSeats.length}</strong>
+                </Typography.Paragraph>
+                <Typography.Paragraph style={{ color: '#8ea8ff', fontSize: '1.1rem', marginBottom: 0 }}>
+                  Giá vé gốc (thường): {Number(selectedShowtime.price).toLocaleString('vi-VN')} ₫
+                </Typography.Paragraph>
+              </div>
+
+              <div style={{ textAlign: 'center', marginTop: 30 }}>
+                <Typography.Text style={{ color: '#8ea8ff', fontSize: '1.2rem', textTransform: 'uppercase' }}>Tổng thanh toán</Typography.Text>
+                <Typography.Title level={2} className="gradient-text gold" style={{ marginTop: 8 }}>
+                  {estimatedSeatTotal.toLocaleString('vi-VN')} ₫
+                </Typography.Title>
+              </div>
+              
+              <Space size="large" style={{ marginTop: 30, display: 'flex', justifyContent: 'center' }}>
+                <Button size="large" className="btn-glass" onClick={() => setStep(1)} style={{ padding: '0 32px' }}>Quay lại</Button>
+                <Button type="primary" size="large" className="btn-glow-primary pulse-glow" icon={<CheckCircleOutlined />} onClick={() => void submitReserve()} style={{ padding: '0 32px' }}>
+                  XÁC NHẬN ĐẶT GHẾ
+                </Button>
+              </Space>
+            </Card>
+          </div>
         )}
 
         {step === 3 && reservationId != null && (
-          <Card className="cinema-card" style={{ marginTop: 16 }} title={<span style={{ color: '#fff' }}>Đã tạo đơn</span>}>
-            <Typography.Paragraph style={{ color: '#b8c7ff' }}>
-              Mã đặt chỗ: <strong style={{ color: '#fff' }}>{reservationId}</strong>
-            </Typography.Paragraph>
-            <Typography.Title level={4} style={{ color: '#73d13d' }}>
-              Tổng dự kiến: {totalAmount.toLocaleString('vi-VN')} ₫
-            </Typography.Title>
-            <Typography.Paragraph style={{ color: '#b8c7ff' }}>
-              {staffCounterMode
-                ? 'Quản lý duyệt đơn trên trang quản trị. Sau đó bạn có thể thu tiền tại tab “Chờ thanh toán”, hoặc khách tự thanh toán trong mục Vé của tôi.'
-                : 'Đơn đang chờ duyệt. Sau khi được duyệt, vào mục Vé của tôi để thanh toán và nhận vé.'}
-            </Typography.Paragraph>
-            <Button type="primary" onClick={() => navigate(homePath)}>
-              {staffCounterMode ? 'Về danh sách phim (quầy)' : 'Về trang chủ'}
-            </Button>
-          </Card>
+          <div className="animate-slide-up">
+            <Card className="glass-receipt-card" style={{ marginTop: 16, marginInline: 'auto', maxWidth: 640, textAlign: 'center', padding: '20px 0' }} bordered={false}>
+              <div style={{ display: 'inline-flex', padding: 20, borderRadius: '50%', background: 'rgba(0, 250, 154, 0.1)', marginBottom: 24, boxShadow: '0 0 30px rgba(0, 250, 154, 0.4)' }}>
+                <CheckCircleOutlined style={{ fontSize: 72, color: '#00fa9a' }} />
+              </div>
+              <Typography.Title level={2} className="gradient-text cyan" style={{ marginBottom: 8, marginTop: 0 }}>
+                CHỐT VÉ THÀNH CÔNG!
+              </Typography.Title>
+              <Typography.Paragraph style={{ color: '#8ea8ff', fontSize: '1.2rem' }}>
+                Mã đặt chỗ: <strong style={{ color: '#fff', fontSize: '1.4rem', letterSpacing: 2, padding: '4px 12px', background: 'rgba(255,255,255,0.1)', borderRadius: 8 }}>{reservationId}</strong>
+              </Typography.Paragraph>
+              
+              <div className="receipt-divider" style={{ margin: '30px 40px' }} />
+              
+              <Typography.Title level={2} className="gradient-text gold" style={{ marginTop: 10, marginBottom: 20 }}>
+                {totalAmount.toLocaleString('vi-VN')} ₫
+              </Typography.Title>
+              <Typography.Paragraph style={{ color: '#b8c7ff', maxWidth: 480, margin: '0 auto 30px', lineHeight: 1.6 }}>
+                {staffCounterMode
+                  ? 'Giao dịch tại quầy đã được đưa vào hàng đợi duyệt. Khách hàng có thể thanh toán tiền mặt/hoặc thẻ ngay bây giờ.'
+                  : 'Vé đang chờ hệ thống xác nhận. Vui lòng kiểm tra mục "Vé của tôi" để tiến hành thanh toán giữ chỗ.'}
+              </Typography.Paragraph>
+              <Button type="primary" size="large" className="btn-glow-primary" onClick={() => navigate(homePath)} style={{ padding: '0 40px', height: 50, borderRadius: 25 }}>
+                {staffCounterMode ? 'VỀ DANH SÁCH (QUẦY)' : 'VỀ TRANG CHỦ'}
+              </Button>
+            </Card>
+          </div>
         )}
       </Content>
     </Layout>

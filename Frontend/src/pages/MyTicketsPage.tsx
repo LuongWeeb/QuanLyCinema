@@ -143,104 +143,111 @@ export function MyTicketsPage({ currentUser, onLogout }: MyTicketsPageProps) {
             </Card>
           ) : (
             rows.map((r) => (
-              <Card
-                key={r.id}
-                className="cinema-card"
-                title={
-                  <Space wrap>
-                    <span style={{ color: '#fff' }}>{r.movieName}</span>
+              <div key={r.id} className="digital-ticket-card">
+                <div className="ticket-left">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                    <div>
+                      <Typography.Text className="hero-tag cyber-tag" style={{ border: 'none', background: 'rgba(0,242,254,0.1)', marginBottom: 8, display: 'inline-block' }}>
+                        Mã vé: {r.id}
+                      </Typography.Text>
+                      <Typography.Title level={3} style={{ color: '#fff', margin: 0 }}>
+                        {r.movieName}
+                      </Typography.Title>
+                    </div>
                     {statusTag(r.status)}
+                  </div>
+                  
+                  <Space size="large" wrap style={{ marginBottom: 20 }}>
+                    <div>
+                      <Typography.Text type="secondary" style={{ color: '#8ea8ff', display: 'block', fontSize: 12 }}>THỜI GIAN</Typography.Text>
+                      <Typography.Text style={{ color: '#fff', fontSize: 16, fontWeight: 500 }}>
+                        {dayjs(r.startTime).format('HH:mm - DD/MM/YYYY')}
+                      </Typography.Text>
+                    </div>
+                    <div>
+                      <Typography.Text type="secondary" style={{ color: '#8ea8ff', display: 'block', fontSize: 12 }}>PHÒNG CHIẾU</Typography.Text>
+                      <Typography.Text style={{ color: '#fff', fontSize: 16, fontWeight: 500 }}>
+                        {r.auditoriumName}
+                      </Typography.Text>
+                    </div>
+                    {r.status !== 'Cancelled' ? (
+                      <div>
+                        <Typography.Text type="secondary" style={{ color: '#8ea8ff', display: 'block', fontSize: 12 }}>TỔNG TIỀN</Typography.Text>
+                        <Typography.Text className="gradient-text gold" style={{ fontSize: 16, fontWeight: 'bold' }}>
+                          {Number(r.totalAmount).toLocaleString('vi-VN')} ₫
+                        </Typography.Text>
+                      </div>
+                    ) : null}
                   </Space>
-                }
-                extra={
+
                   <Space wrap>
                     {r.canPay ? (
                       <Button
                         type="primary"
-                        size="small"
+                        className="btn-glow-primary"
                         loading={payingId === r.id}
                         onClick={() => void onPay(r.id)}
                       >
-                        Thanh toán
+                        Thanh toán ngay
                       </Button>
                     ) : null}
                     {r.canCancel ? (
                       <Popconfirm
                         title="Hủy đặt chỗ?"
-                        description="Ghế sẽ được trả lại cho suất chiếu này."
+                        description="Ghế sẽ được trả lại cho hệ thống."
                         okText="Hủy đặt"
-                        cancelText="Không"
+                        cancelText="Đóng"
                         onConfirm={() => void onCancel(r.id)}
                       >
-                        <Button danger size="small" loading={cancellingId === r.id}>
-                          Hủy đặt chỗ
+                        <Button className="btn-glass" danger loading={cancellingId === r.id}>
+                          Hủy xuất vé
                         </Button>
                       </Popconfirm>
                     ) : null}
                   </Space>
-                }
-              >
-                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                  <Typography.Text style={{ color: '#b8c7ff' }}>
-                    Phòng: <strong style={{ color: '#fff' }}>{r.auditoriumName}</strong>
-                  </Typography.Text>
-                  <Typography.Text style={{ color: '#b8c7ff' }}>
-                    Giờ chiếu:{' '}
-                    <strong style={{ color: '#fff' }}>{dayjs(r.startTime).format('DD/MM/YYYY HH:mm')}</strong>
-                  </Typography.Text>
-                  <Typography.Text style={{ color: '#b8c7ff' }}>
-                    Ghế:{' '}
-                    <strong style={{ color: '#fff' }}>
-                      {r.seatCodes.length > 0 ? r.seatCodes.join(', ') : '—'}
-                    </strong>
-                  </Typography.Text>
-                  {r.status !== 'Cancelled' ? (
-                    <Typography.Text style={{ color: '#ffd666' }}>
-                      Tổng tiền: {Number(r.totalAmount).toLocaleString('vi-VN')} ₫
-                    </Typography.Text>
-                  ) : null}
+                </div>
 
-                  {r.tickets.length > 0 ? (
-                    <div style={{ marginTop: 8 }}>
-                      <Typography.Text style={{ color: '#fff', display: 'block', marginBottom: 8 }}>
-                        Vé / QR
-                      </Typography.Text>
-                      <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                        {r.tickets.map((t) => (
-                          <div
-                            key={t.qrCode}
-                            style={{
-                              padding: '8px 12px',
-                              borderRadius: 8,
-                              background: 'rgba(0,0,0,0.2)',
-                              border: '1px solid rgba(127,154,255,0.25)',
-                            }}
-                          >
-                            <Space wrap>
-                              <Typography.Text style={{ color: '#e6edff' }}>{t.seatCode}</Typography.Text>
-                              {t.checkedIn ? <Tag color="blue">Đã check-in</Tag> : null}
-                              <Typography.Text copyable style={{ color: '#9fb3ff', fontSize: 12 }}>
-                                {t.qrCode}
-                              </Typography.Text>
-                              {r.status === 'Paid' ? (
-                                <Button
-                                  type="link"
-                                  size="small"
-                                  icon={<DownloadOutlined />}
-                                  onClick={() => void onDownloadPdf(t.qrCode)}
-                                  style={{ padding: 0 }}
-                                >
-                                  PDF
-                                </Button>
-                              ) : null}
-                            </Space>
-                          </div>
-                        ))}
-                      </Space>
-                    </div>
-                  ) : null}
-                </Space>
-              </Card>
+                <div className="ticket-divider"></div>
+
+                <div className="ticket-right">
+                  <Typography.Text type="secondary" style={{ color: '#8ea8ff', marginBottom: 16, letterSpacing: 2 }}>
+                    GHẾ CỦA BẠN
+                  </Typography.Text>
+                  
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 20 }}>
+                    {r.seatCodes.length > 0 ? (
+                      r.seatCodes.map((sc) => (
+                        <div key={sc} className="booking-seat selected" style={{ pointerEvents: 'none', width: '40px', height: '40px', fontSize: '1rem', padding: 0 }}>
+                          {sc}
+                        </div>
+                      ))
+                    ) : (
+                      <Typography.Text style={{ color: 'rgba(255,255,255,0.3)' }}>—</Typography.Text>
+                    )}
+                  </div>
+
+                  {r.tickets.length > 0 && r.status === 'Paid' ? (
+                    <Button 
+                      type="primary" 
+                      className="btn-glow-primary" 
+                      icon={<DownloadOutlined />} 
+                      style={{ width: '100%', borderRadius: 100 }}
+                      onClick={() => {
+                        // Demo: just download the first one or alert if multiple. For now we follow the UI flow.
+                        if (r.tickets[0]) void onDownloadPdf(r.tickets[0].qrCode)
+                      }}
+                    >
+                      TẢI VÉ PDF
+                    </Button>
+                  ) : r.status === 'Paid' ? (
+                    <Typography.Text style={{ color: '#00fa9a' }}>Đã xuất vé</Typography.Text>
+                  ) : (
+                    <Typography.Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+                      Vé điện tử sẽ hiển thị sau khi thanh toán
+                    </Typography.Text>
+                  )}
+                </div>
+              </div>
             ))
           )}
         </Space>

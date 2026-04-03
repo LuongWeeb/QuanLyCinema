@@ -1,5 +1,5 @@
 import { DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons'
-import { Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Space, Table, Upload, message } from 'antd'
+import { Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Upload, message } from 'antd'
 import type { UploadFile } from 'antd/es/upload/interface'
 import { useEffect, useState } from 'react'
 import {
@@ -24,6 +24,45 @@ export function AdminMoviesPage() {
   const [posterFile, setPosterFile] = useState<File | null>(null)
   const [posterFileList, setPosterFileList] = useState<UploadFile[]>([])
   const [api, contextHolder] = message.useMessage()
+
+  const genreOptions = (() => {
+    const common = [
+      'Hành động',
+      'Phiêu lưu',
+      'Khoa học viễn tưởng',
+      'Viễn tưởng',
+      'Trinh thám',
+      'Kinh dị',
+      'Tâm lý',
+      'Hài hước',
+      'Tình cảm',
+      'Romance',
+      'Gia đình',
+      'Hoạt hình',
+      'Giả tưởng',
+      'Thần thoại',
+      'Chiến tranh',
+      'Thể thao',
+      'Âm nhạc',
+      'Bí ẩn',
+      'Tâm linh',
+      'Dạng tài liệu',
+      'Chính kịch',
+      // thêm một vài alias phổ biến để map nhanh nếu dữ liệu DB đang dùng tiếng Anh
+      'Adventure',
+      'Comedy',
+      'Drama',
+      'Horror',
+      'Romance',
+    ]
+
+    const uniq = Array.from(
+      new Set(rows.map((r) => (r.genre ?? '').trim()).filter(Boolean)),
+    )
+
+    const merged = Array.from(new Set([...uniq, ...common]))
+    return merged.map((g) => ({ value: g, label: g }))
+  })()
 
   async function load() {
     setLoading(true)
@@ -107,7 +146,7 @@ export function AdminMoviesPage() {
     <Card className="cinema-card" title={<span style={{ color: '#fff' }}>Quản lý phim</span>}>
       {contextHolder}
       <Space style={{ marginBottom: 12 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate} className="btn-glow-primary">
           Thêm phim
         </Button>
         <Button icon={<ReloadOutlined />} onClick={() => void load()}>
@@ -170,7 +209,16 @@ export function AdminMoviesPage() {
             <Input />
           </Form.Item>
           <Form.Item name="genre" label="Thể loại" rules={[{ required: true }]}>
-            <Input />
+            <Select
+              showSearch
+              allowClear
+              placeholder="Chọn thể loại"
+              options={genreOptions}
+              filterOption={(input, option) => {
+                const label = String(option?.label ?? '')
+                return label.toLowerCase().includes(input.toLowerCase())
+              }}
+            />
           </Form.Item>
           <Form.Item name="durationMinutes" label="Thời lượng (phút)" rules={[{ required: true }]}>
             <InputNumber min={1} style={{ width: '100%' }} />
