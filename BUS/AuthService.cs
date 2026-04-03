@@ -16,6 +16,7 @@ public interface IAuthService
     Task<LoginResponse?> LoginAsync(LoginRequest request);
     Task SeedDefaultUsersAsync();
     Task<(bool Success, string Message)> RegisterAsync(RegisterRequest request);
+    Task<IReadOnlyList<CustomerLookupDto>> SearchCustomersAsync(string? keyword, int take = 30);
     Task<PagedUsersResponse> GetUsersWithRolesAsync(UserManagementQuery query);
     Task<(bool Success, string Message)> CreateUserAsync(CreateUserRequest request);
     Task<(bool Success, string Message)> UpdateUserAsync(UpdateUserRequest request);
@@ -274,6 +275,33 @@ END";
         await _db.SaveChangesAsync();
 
         return (true, "Đăng ký tài khoản thành công.");
+    }
+
+    public async Task<IReadOnlyList<CustomerLookupDto>> SearchCustomersAsync(string? keyword, int take = 30)
+    {
+        take = Math.Clamp(take, 1, 50);
+        var customerRole = await _db.Roles.AsNoTracking().FirstOrDefaultAsync(x => x.Name == "Customer");
+        if (customerRole is null)
+        {
+            return Array.Empty<CustomerLookupDto>();
+        }
+
+        var q = keyword?.Trim();
+        var query = _db.Users
+            .AsNoTracking()
+            .Where(u => !u.IsLocked)
+            .Where(u => u.UserRoles.Any(ur => ur.RoleId == customerRole.Id));
+
+        if (!string.IsNullOrEmpty(q))
+        {
+            query = query.Where(u => u.Username.Contains(q) || u.FullName.Contains(q));
+        }
+
+        return await query
+            .OrderBy(u => u.Username)
+            .Take(take)
+            .Select(u => new CustomerLookupDto(u.Id, u.Username, u.FullName))
+            .ToListAsync();
     }
 
     public async Task<PagedUsersResponse> GetUsersWithRolesAsync(UserManagementQuery query)

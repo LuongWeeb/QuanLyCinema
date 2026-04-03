@@ -3,6 +3,7 @@ using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuanLyRapPhim.Extensions;
 
 namespace QuanLyRapPhim.Controllers;
 
@@ -12,10 +13,12 @@ namespace QuanLyRapPhim.Controllers;
 public class MoviesController : ControllerBase
 {
     private readonly CinemaDbContext _db;
+    private readonly IWebHostEnvironment _env;
 
-    public MoviesController(CinemaDbContext db)
+    public MoviesController(CinemaDbContext db, IWebHostEnvironment env)
     {
         _db = db;
+        _env = env;
     }
 
     [HttpGet]
@@ -29,7 +32,7 @@ public class MoviesController : ControllerBase
         if (!string.IsNullOrWhiteSpace(tuKhoa))
         {
             var keyword = tuKhoa.Trim();
-            query = query.Where(x => x.Name.Contains(keyword));
+            query = query.Where(x => x.Name.Contains(keyword) || x.Genre.Contains(keyword));
         }
 
         if (!string.IsNullOrWhiteSpace(theLoai))
@@ -55,6 +58,93 @@ public class MoviesController : ControllerBase
         return Ok(movie);
     }
 
+    [HttpGet("{id:int}/chi-tiet")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetChiTiet(int id)
+    {
+        var movie = await _db.Movies.FirstOrDefaultAsync(x => x.Id == id);
+        if (movie is null)
+        {
+            return NotFound(new { message = "Không tìm thấy phim." });
+        }
+
+        var q = _db.MovieRatings.Where(r => r.MovieId == id);
+        var count = await q.CountAsync();
+        var avg = count > 0 ? await q.AverageAsync(r => (double)r.Stars) : 0d;
+
+        int? myStars = null;
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            var uid = User.GetUserId();
+            if (uid > 0)
+            {
+                var mine = await _db.MovieRatings.FirstOrDefaultAsync(r => r.MovieId == id && r.UserId == uid);
+                if (mine != null)
+                {
+                    myStars = mine.Stars;
+                }
+            }
+        }
+
+        var dto = new MovieDetailResponse(
+            movie.Id,
+            movie.Name,
+            movie.Genre,
+            movie.DurationMinutes,
+            movie.Rating,
+            movie.PosterUrl,
+            avg,
+            count,
+            myStars);
+        return Ok(dto);
+    }
+
+    [HttpPost("{id:int}/danh-gia")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Rate(int id, [FromBody] RateMovieRequest request)
+    {
+        if (User?.Identity?.IsAuthenticated != true)
+        {
+            return Unauthorized(new { message = "Vui lòng đăng nhập để đánh giá." });
+        }
+
+        var uid = User.GetUserId();
+        if (uid <= 0)
+        {
+            return Unauthorized(new { message = "Vui lòng đăng nhập để đánh giá." });
+        }
+
+        if (request.Stars < 1 || request.Stars > 5)
+        {
+            return BadRequest(new { message = "Số sao từ 1 đến 5." });
+        }
+
+        var movie = await _db.Movies.FirstOrDefaultAsync(x => x.Id == id);
+        if (movie is null)
+        {
+            return NotFound(new { message = "Không tìm thấy phim." });
+        }
+
+        var existing = await _db.MovieRatings.FirstOrDefaultAsync(r => r.MovieId == id && r.UserId == uid);
+        if (existing != null)
+        {
+            existing.Stars = (byte)request.Stars;
+            existing.CreatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            _db.MovieRatings.Add(new MovieRating
+            {
+                UserId = uid,
+                MovieId = id,
+                Stars = (byte)request.Stars
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Cảm ơn bạn đã đánh giá." });
+    }
+
     [HttpPost]
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Create([FromBody] MovieRequest request)
@@ -64,7 +154,8 @@ public class MoviesController : ControllerBase
             Name = request.Name,
             Genre = request.Genre,
             DurationMinutes = request.DurationMinutes,
-            Rating = request.Rating
+            Rating = request.Rating,
+            PosterUrl = string.IsNullOrWhiteSpace(request.PosterUrl) ? null : request.PosterUrl.Trim()
         };
         _db.Movies.Add(entity);
         await _db.SaveChangesAsync();
@@ -85,9 +176,49 @@ public class MoviesController : ControllerBase
         movie.Genre = request.Genre;
         movie.DurationMinutes = request.DurationMinutes;
         movie.Rating = request.Rating;
+        movie.PosterUrl = string.IsNullOrWhiteSpace(request.PosterUrl) ? null : request.PosterUrl.Trim();
 
         await _db.SaveChangesAsync();
         return Ok(movie);
+    }
+
+    [HttpPost("{id:int}/anh-bia")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequestSizeLimit(12 * 1024 * 1024)]
+    public async Task<IActionResult> UploadPoster(int id, IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Chọn file ảnh." });
+        }
+
+        var movie = await _db.Movies.FirstOrDefaultAsync(x => x.Id == id);
+        if (movie is null)
+        {
+            return NotFound(new { message = "Không tìm thấy phim." });
+        }
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+        if (string.IsNullOrEmpty(ext) || !allowed.Contains(ext))
+        {
+            return BadRequest(new { message = "Chỉ chấp nhận ảnh: jpg, png, webp, gif." });
+        }
+
+        var webRoot = _env.WebRootPath ?? Path.Combine(_env.ContentRootPath, "wwwroot");
+        var postersDir = Path.Combine(webRoot, "posters");
+        Directory.CreateDirectory(postersDir);
+
+        var safeName = $"m{id}_{Guid.NewGuid():N}{ext}";
+        var physical = Path.Combine(postersDir, safeName);
+        await using (var stream = System.IO.File.Create(physical))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        movie.PosterUrl = $"/posters/{safeName}";
+        await _db.SaveChangesAsync();
+        return Ok(new { posterUrl = movie.PosterUrl });
     }
 
     [HttpDelete("{id:int}")]
@@ -106,6 +237,8 @@ public class MoviesController : ControllerBase
             return BadRequest(new { message = "Không thể xóa phim đã có lịch chiếu." });
         }
 
+        var ratings = await _db.MovieRatings.Where(r => r.MovieId == id).ToListAsync();
+        _db.MovieRatings.RemoveRange(ratings);
         _db.Movies.Remove(movie);
         await _db.SaveChangesAsync();
         return Ok(new { message = "Xóa phim thành công." });
@@ -130,7 +263,15 @@ public class MoviesController : ControllerBase
         var upcoming = await _db.Showtimes
             .Where(s => s.StartTime > now)
             .Include(s => s.Movie)
-            .GroupBy(s => new { s.MovieId, s.Movie.Name, s.Movie.Genre, s.Movie.DurationMinutes, s.Movie.Rating })
+            .GroupBy(s => new
+            {
+                s.MovieId,
+                s.Movie.Name,
+                s.Movie.Genre,
+                s.Movie.DurationMinutes,
+                s.Movie.Rating,
+                s.Movie.PosterUrl
+            })
             .Select(g => new
             {
                 Id = g.Key.MovieId,
@@ -138,6 +279,7 @@ public class MoviesController : ControllerBase
                 Genre = g.Key.Genre,
                 DurationMinutes = g.Key.DurationMinutes,
                 Rating = g.Key.Rating,
+                PosterUrl = g.Key.PosterUrl,
                 SuatChieuSomNhat = g.Min(x => x.StartTime)
             })
             .OrderBy(x => x.SuatChieuSomNhat)
@@ -164,7 +306,8 @@ public class MoviesController : ControllerBase
                 x.s.Movie.Name,
                 x.s.Movie.Genre,
                 x.s.Movie.DurationMinutes,
-                x.s.Movie.Rating
+                x.s.Movie.Rating,
+                x.s.Movie.PosterUrl
             })
             .Select(g => new
             {
@@ -173,6 +316,7 @@ public class MoviesController : ControllerBase
                 Genre = g.Key.Genre,
                 DurationMinutes = g.Key.DurationMinutes,
                 Rating = g.Key.Rating,
+                PosterUrl = g.Key.PosterUrl,
                 TongDoanhThu = g.Sum(x => x.pir.pi.i.TotalAmount)
             })
             .OrderByDescending(x => x.TongDoanhThu)

@@ -25,18 +25,26 @@ import {
   message,
 } from 'antd'
 import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { TopbarSearch } from '../components/common/TopbarSearch'
 import { UserDropdown } from '../components/common/UserDropdown'
-import { getNowShowingMovies } from '../services/movieService'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
+import { listMovies } from '../services/movieService'
 import type { LoginResponse } from '../types/auth'
 import type { Movie } from '../types/movie'
 import { mapApiError } from '../utils/error'
+import { resolveUploadedPosterUrl } from '../utils/moviePoster'
 
 const { Header, Content, Footer } = Layout
 
 interface CustomerHomePageProps {
   currentUser: LoginResponse
   onLogout: () => void
+  /** Ví dụ `/ban-ve` khi nhân viên đặt vé tại quầy */
+  routeBase?: string
+  /** Giao diện quầy: ẩn vé của tôi, thêm nút về quản trị */
+  staffCounterMode?: boolean
+  onBackToAdmin?: () => void
 }
 
 const heroSlides = [
@@ -62,6 +70,8 @@ const posterImages = [
 ]
 
 function resolvePoster(movie: Movie): string {
+  const uploaded = resolveUploadedPosterUrl(movie.posterUrl)
+  if (uploaded) return uploaded
   const normalized = movie.name.toLowerCase()
   if (normalized.includes('avengers')) return '/posters/Avengers_Endgame.jpg'
   if (normalized.includes('doraemon')) return '/posters/Doraemon_Movie.jpg'
@@ -130,17 +140,35 @@ const faqItems = [
   },
 ]
 
-export function CustomerHomePage({ currentUser, onLogout }: CustomerHomePageProps) {
+export function CustomerHomePage({
+  currentUser,
+  onLogout,
+  routeBase = '',
+  staffCounterMode = false,
+  onBackToAdmin,
+}: CustomerHomePageProps) {
+  const navigate = useNavigate()
+  const base = routeBase.replace(/\/$/, '')
+  const movieBookingPath = (movieId: number) => (base ? `${base}/phim/${movieId}` : `/phim/${movieId}`)
+  const [searchParams] = useSearchParams()
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('q') ?? '')
+  const debouncedSearch = useDebouncedValue(searchInput, 380)
   const [movies, setMovies] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
   const [activeMenu, setActiveMenu] = useState('phim-dang-chieu')
   const [api, contextHolder] = message.useMessage()
 
+  const qParam = searchParams.get('q') ?? ''
+  useEffect(() => {
+    setSearchInput(qParam)
+  }, [qParam])
+
   useEffect(() => {
     async function loadMovies() {
       setLoading(true)
       try {
-        const data = await getNowShowingMovies()
+        const kw = debouncedSearch.trim()
+        const data = await listMovies(kw ? { keyword: kw } : undefined)
         setMovies(data)
       } catch (error) {
         const detail = mapApiError(error)
@@ -151,7 +179,7 @@ export function CustomerHomePage({ currentUser, onLogout }: CustomerHomePageProp
     }
 
     void loadMovies()
-  }, [api])
+  }, [debouncedSearch, api])
 
   function handleMenuClick(sectionId: string) {
     setActiveMenu(sectionId)
@@ -200,10 +228,26 @@ export function CustomerHomePage({ currentUser, onLogout }: CustomerHomePageProp
             ]}
             onClick={(info) => handleMenuClick(info.key)}
           />
-          <TopbarSearch placeholder="Tìm kiếm phim..." />
+          <TopbarSearch
+            placeholder="Tìm tên phim hoặc thể loại..."
+            value={searchInput}
+            onChange={setSearchInput}
+            onEnter={() =>
+              document.getElementById('phim-dang-chieu')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              })
+            }
+          />
         </div>
 
-        <UserDropdown username={currentUser.username} role={currentUser.role} onLogout={onLogout} />
+        <UserDropdown
+          username={currentUser.username}
+          role={currentUser.role}
+          onLogout={onLogout}
+          onMyTickets={staffCounterMode ? undefined : () => navigate('/ve-cua-toi')}
+          onBackToAdmin={staffCounterMode && onBackToAdmin ? onBackToAdmin : undefined}
+        />
       </Header>
 
       <Content className="customer-content">
@@ -233,49 +277,64 @@ export function CustomerHomePage({ currentUser, onLogout }: CustomerHomePageProp
             <Typography.Text style={{ color: '#9fb3ff' }}>
               Cập nhật theo lịch phim hiện tại tại rạp.
             </Typography.Text>
+            {debouncedSearch.trim() ? (
+              <Typography.Text style={{ color: '#c5d3ff', display: 'block' }}>
+                Kết quả cho &ldquo;{debouncedSearch.trim()}&rdquo; — {loading ? '…' : `${movies.length} phim`}
+              </Typography.Text>
+            ) : null}
           </Space>
 
-          <Row gutter={[16, 16]}>
+          <div className="movie-grid-5">
             {loading
               ? Array.from({ length: 6 }).map((_, idx) => (
-                  <Col xs={24} sm={12} md={8} key={idx}>
-                    <Card className="cinema-card">
-                      <Skeleton active paragraph={{ rows: 3 }} />
-                    </Card>
-                  </Col>
+                  <Card className="cinema-card" key={idx}>
+                    <Skeleton active paragraph={{ rows: 3 }} />
+                  </Card>
                 ))
+              : movies.length === 0 ? (
+                  <Card
+                    className="cinema-card"
+                    style={{ gridColumn: '1 / -1', maxWidth: 560, justifySelf: 'center' }}
+                  >
+                    <Typography.Paragraph style={{ color: '#b8c7ff', marginBottom: 0 }}>
+                      Không tìm thấy phim phù hợp. Thử từ khóa khác (tên hoặc thể loại) hoặc xóa ô tìm kiếm để
+                      xem toàn bộ phim.
+                    </Typography.Paragraph>
+                  </Card>
+                )
               : movies.map((movie) => (
-                  <Col xs={24} sm={12} md={8} key={movie.id}>
-                    <Card className="cinema-card movie-card">
-                      <Space orientation="vertical" size={10}>
-                        <div
-                          className="movie-poster"
-                          style={{
-                            backgroundImage: `url(${resolvePoster(movie)})`,
-                          }}
-                        />
-                        <Tag color="processing" icon={<PlayCircleOutlined />}>
-                          Đang chiếu
-                        </Tag>
-                        <Typography.Title level={4} style={{ margin: 0, color: '#fff' }}>
-                          {movie.name}
-                        </Typography.Title>
-                        <Typography.Text style={{ color: '#9fb3ff' }}>
-                          Thể loại: {movie.genre}
+                  <Card className="cinema-card movie-card" key={movie.id}>
+                    <Space orientation="vertical" size={10}>
+                      <div
+                        className="movie-poster"
+                        style={{
+                          backgroundImage: `url(${resolvePoster(movie)})`,
+                        }}
+                      />
+                      <Tag color="processing" icon={<PlayCircleOutlined />}>
+                        Đang chiếu
+                      </Tag>
+                      <Typography.Title level={4} style={{ margin: 0, color: '#fff' }}>
+                        {movie.name}
+                      </Typography.Title>
+                      <Typography.Text style={{ color: '#9fb3ff' }}>
+                        Thể loại: {movie.genre}
+                      </Typography.Text>
+                      <Space size={12}>
+                        <Typography.Text style={{ color: '#c5d3ff' }}>
+                          <ClockCircleOutlined /> {movie.durationMinutes} phút
                         </Typography.Text>
-                        <Space size={12}>
-                          <Typography.Text style={{ color: '#c5d3ff' }}>
-                            <ClockCircleOutlined /> {movie.durationMinutes} phút
-                          </Typography.Text>
-                          <Typography.Text style={{ color: '#ffd666' }}>
-                            <StarFilled /> {movie.rating.toFixed(1)}
-                          </Typography.Text>
-                        </Space>
+                        <Typography.Text style={{ color: '#ffd666' }}>
+                          <StarFilled /> {movie.rating.toFixed(1)}
+                        </Typography.Text>
                       </Space>
-                    </Card>
-                  </Col>
+                      <Button type="primary" block onClick={() => navigate(movieBookingPath(movie.id))}>
+                        Đặt vé
+                      </Button>
+                    </Space>
+                  </Card>
                 ))}
-          </Row>
+          </div>
         </section>
 
         <section className="section-spacing" id="phim-moi-cap-nhat">
@@ -288,19 +347,17 @@ export function CustomerHomePage({ currentUser, onLogout }: CustomerHomePageProp
               Danh sách phim vừa được bổ sung, ưu tiên hiển thị trên trang chủ.
             </Typography.Text>
           </Space>
-          <Row gutter={[16, 16]}>
+          <div className="movie-grid-5">
             {updatedMovies.map((movie) => (
-              <Col xs={24} sm={12} md={6} key={`new-${movie.id}`}>
-                <Card className="cinema-card movie-card compact-card">
-                  <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
-                  <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
-                    {movie.name}
-                  </Typography.Title>
-                  <Tag color="geekblue">Mới cập nhật</Tag>
-                </Card>
-              </Col>
+              <Card className="cinema-card movie-card compact-card" key={`new-${movie.id}`}>
+                <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
+                <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
+                  {movie.name}
+                </Typography.Title>
+                <Tag color="geekblue">Mới cập nhật</Tag>
+              </Card>
             ))}
-          </Row>
+          </div>
         </section>
 
         <section className="section-spacing" id="phim-sap-chieu">
@@ -313,22 +370,20 @@ export function CustomerHomePage({ currentUser, onLogout }: CustomerHomePageProp
               Các tựa phim sắp khởi chiếu để khách hàng đặt lịch trước.
             </Typography.Text>
           </Space>
-          <Row gutter={[16, 16]}>
+          <div className="movie-grid-5">
             {upcomingMovies.map((movie) => (
-              <Col xs={24} sm={12} md={6} key={`upcoming-${movie.id}`}>
-                <Card className="cinema-card movie-card compact-card">
-                  <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
-                  <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
-                    {movie.name}
-                  </Typography.Title>
-                  <Typography.Text style={{ color: '#c5d3ff' }}>{movie.releaseText}</Typography.Text>
-                  <Button type="primary" block size="middle" style={{ marginTop: 10 }}>
-                    Đặt nhắc lịch
-                  </Button>
-                </Card>
-              </Col>
+              <Card className="cinema-card movie-card compact-card" key={`upcoming-${movie.id}`}>
+                <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
+                <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
+                  {movie.name}
+                </Typography.Title>
+                <Typography.Text style={{ color: '#c5d3ff' }}>{movie.releaseText}</Typography.Text>
+                <Button type="primary" block size="middle" style={{ marginTop: 10 }}>
+                  Đặt nhắc lịch
+                </Button>
+              </Card>
             ))}
-          </Row>
+          </div>
         </section>
 
         <section className="section-spacing" id="phim-top-doanh-thu">
@@ -341,25 +396,23 @@ export function CustomerHomePage({ currentUser, onLogout }: CustomerHomePageProp
               Nhóm phim có hiệu suất bán vé cao nhất hệ thống.
             </Typography.Text>
           </Space>
-          <Row gutter={[16, 16]}>
+          <div className="movie-grid-5">
             {topRevenueMovies.map((movie, idx) => (
-              <Col xs={24} sm={12} md={6} key={`top-${movie.id}`}>
-                <Card className="cinema-card movie-card compact-card top-revenue-card">
-                  <Tag color="gold">Top #{idx + 1}</Tag>
-                  <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
-                  <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
-                    {movie.name}
-                  </Typography.Title>
-                  <Space size={10}>
-                    <Typography.Text style={{ color: '#ffd666' }}>
-                      <StarFilled /> {movie.rating.toFixed(1)}
-                    </Typography.Text>
-                    <Typography.Text style={{ color: '#73d13d' }}>Doanh thu: {movie.revenue}</Typography.Text>
-                  </Space>
-                </Card>
-              </Col>
+              <Card className="cinema-card movie-card compact-card top-revenue-card" key={`top-${movie.id}`}>
+                <Tag color="gold">Top #{idx + 1}</Tag>
+                <div className="movie-poster" style={{ backgroundImage: `url(${resolvePoster(movie)})` }} />
+                <Typography.Title level={5} style={{ color: '#fff', margin: '10px 0 6px' }}>
+                  {movie.name}
+                </Typography.Title>
+                <Space size={10}>
+                  <Typography.Text style={{ color: '#ffd666' }}>
+                    <StarFilled /> {movie.rating.toFixed(1)}
+                  </Typography.Text>
+                  <Typography.Text style={{ color: '#73d13d' }}>Doanh thu: {movie.revenue}</Typography.Text>
+                </Space>
+              </Card>
             ))}
-          </Row>
+          </div>
         </section>
 
         <section className="section-spacing" id="nghiep-vu">

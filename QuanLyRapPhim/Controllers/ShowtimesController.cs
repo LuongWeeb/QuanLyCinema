@@ -20,9 +20,15 @@ public class ShowtimesController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] int? phimId = null)
     {
-        var data = await _db.Showtimes.Include(s => s.Movie).Include(s => s.Auditorium).ToListAsync();
+        var q = _db.Showtimes.Include(s => s.Movie).Include(s => s.Auditorium).AsQueryable();
+        if (phimId.HasValue)
+        {
+            q = q.Where(s => s.MovieId == phimId.Value);
+        }
+
+        var data = await q.OrderBy(s => s.StartTime).ToListAsync();
         return Ok(data);
     }
 
@@ -42,6 +48,51 @@ public class ShowtimesController : ControllerBase
         return Ok(entity);
     }
 
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> Update(int id, [FromBody] ShowtimeRequest request)
+    {
+        var entity = await _db.Showtimes.FirstOrDefaultAsync(x => x.Id == id);
+        if (entity is null)
+        {
+            return NotFound(new { message = "Không tìm thấy suất chiếu." });
+        }
+
+        var hasTickets = await _db.Tickets.AnyAsync(t => t.ShowtimeId == id);
+        if (hasTickets)
+        {
+            return BadRequest(new { message = "Không thể sửa suất đã có vé đặt." });
+        }
+
+        entity.MovieId = request.MovieId;
+        entity.AuditoriumId = request.AuditoriumId;
+        entity.StartTime = request.StartTime;
+        entity.Price = request.Price;
+        await _db.SaveChangesAsync();
+        return Ok(entity);
+    }
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var entity = await _db.Showtimes.FirstOrDefaultAsync(x => x.Id == id);
+        if (entity is null)
+        {
+            return NotFound(new { message = "Không tìm thấy suất chiếu." });
+        }
+
+        var hasTickets = await _db.Tickets.AnyAsync(t => t.ShowtimeId == id);
+        if (hasTickets)
+        {
+            return BadRequest(new { message = "Không thể xóa suất đã có vé đặt." });
+        }
+
+        _db.Showtimes.Remove(entity);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Xóa suất chiếu thành công." });
+    }
+
     [HttpGet("{showtimeId:int}/so-do-ghe")]
     [AllowAnonymous]
     public async Task<IActionResult> SeatMap(int showtimeId)
@@ -58,6 +109,7 @@ public class ShowtimesController : ControllerBase
         {
             s.Id,
             s.SeatCode,
+            s.IsVip,
             Status = soldSeatIds.Contains(s.Id) ? SeatStatus.Sold : SeatStatus.Available
         });
         return Ok(result);

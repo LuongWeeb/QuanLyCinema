@@ -1,12 +1,5 @@
-/*
-    DB_Qlrapphim.sql
-    Script tao moi database theo dung schema API hien tai (DTO/DAL/BUS).
-    Co ho tro xoa DB neu da ton tai.
-*/
-
 USE master;
 GO
-
 
 CREATE DATABASE [WebQuanLyRapPhim];
 GO
@@ -111,7 +104,7 @@ CREATE TABLE [dbo].[Reservations]
     [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [UserId] INT NOT NULL,
     [ShowtimeId] INT NOT NULL,
-    [Status] INT NOT NULL DEFAULT (1), -- 1=Pending, 2=Paid, 3=Cancelled
+    [Status] INT NOT NULL DEFAULT (1), -- 1=PendingApproval, 2=Paid, 3=Cancelled, 4=PendingPayment
     [CreatedAt] DATETIME2(7) NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT [FK_Reservations_Users_UserId]
         FOREIGN KEY ([UserId]) REFERENCES [dbo].[Users]([Id]),

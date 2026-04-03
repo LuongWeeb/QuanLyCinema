@@ -2,17 +2,14 @@ import { Col, Layout, Row, Space, Statistic, message } from 'antd'
 import { useState } from 'react'
 import { LoginFormCard } from '../components/auth/LoginFormCard'
 import { LoginHeader } from '../components/auth/LoginHeader'
+import { useAuth } from '../hooks/useAuth'
 import { login, register } from '../services/authService'
-import type { LoginResponse } from '../types/auth'
 import { mapApiError } from '../utils/error'
 
 const { Content } = Layout
 
-interface LoginPageProps {
-  onLoginSuccess: (user: LoginResponse) => void
-}
-
-export function LoginPage({ onLoginSuccess }: LoginPageProps) {
+export function LoginPage() {
+  const { setCurrentUser } = useAuth()
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [api, contextHolder] = message.useMessage()
@@ -27,9 +24,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         password: values.password,
       })
 
-      localStorage.setItem('token', result.accessToken)
-      localStorage.setItem('currentUser', JSON.stringify(result))
-      onLoginSuccess(result)
+      setCurrentUser(result)
       api.success(`Đăng nhập thành công: ${result.username} (${result.role})`)
     } catch (error) {
       const detail = mapApiError(error)

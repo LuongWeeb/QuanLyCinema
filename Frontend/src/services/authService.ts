@@ -2,6 +2,7 @@ import { httpClient } from './httpClient'
 import type {
   AssignUserRoleRequest,
   CreateUserRequest,
+  CustomerLookup,
   LoginRequest,
   LoginResponse,
   PagedUsersResponse,
@@ -10,6 +11,13 @@ import type {
   UpdateUserRequest,
   UserManagementQuery,
 } from '../types/auth'
+
+export async function searchCustomers(q?: string, take = 30): Promise<CustomerLookup[]> {
+  const { data } = await httpClient.get<CustomerLookup[]>('/api/xac-thuc/khach-hang-goi-y', {
+    params: { q: q?.trim() || undefined, take },
+  })
+  return Array.isArray(data) ? data : []
+}
 
 export async function login(payload: LoginRequest): Promise<LoginResponse> {
   const { data } = await httpClient.post<LoginResponse>(

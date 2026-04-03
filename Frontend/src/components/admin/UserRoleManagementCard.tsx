@@ -361,7 +361,7 @@ export function UserRoleManagementCard() {
         title="Thêm tài khoản mới"
         onCancel={() => setCreateOpen(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form<CreateUserRequest> form={createForm} layout="vertical" onFinish={(v) => void handleCreate(v)}>
           <Form.Item
@@ -402,7 +402,7 @@ export function UserRoleManagementCard() {
         title="Cập nhật tài khoản"
         onCancel={() => setEditUser(null)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form<UpdateUserRequest> form={editForm} layout="vertical" onFinish={(v) => void handleEdit(v)}>
           <Form.Item name="userId" hidden>

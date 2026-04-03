@@ -9,9 +9,12 @@ public enum SeatStatus
 
 public enum ReservationStatus
 {
-    Pending = 1,
+    /// <summary>Đơn mới tạo, chờ quản lý/nhân viên duyệt.</summary>
+    PendingApproval = 1,
     Paid = 2,
-    Cancelled = 3
+    Cancelled = 3,
+    /// <summary>Đã duyệt, chờ khách thanh toán (online hoặc tại quầy).</summary>
+    PendingPayment = 4
 }
 
 public enum PaymentStatus
@@ -30,6 +33,7 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsLocked { get; set; }
     public List<UserRole> UserRoles { get; set; } = new();
+    public List<MovieRating> MovieRatings { get; set; } = new();
 }
 
 public class Role
@@ -55,6 +59,19 @@ public class Movie
     public string Genre { get; set; } = string.Empty;
     public int DurationMinutes { get; set; }
     public decimal Rating { get; set; }
+    public string? PosterUrl { get; set; }
+    public List<MovieRating> MovieRatings { get; set; } = new();
+}
+
+public class MovieRating
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public User User { get; set; } = null!;
+    public int MovieId { get; set; }
+    public Movie Movie { get; set; } = null!;
+    public byte Stars { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class Auditorium
@@ -71,6 +88,8 @@ public class Seat
     public int AuditoriumId { get; set; }
     public Auditorium Auditorium { get; set; } = null!;
     public string SeatCode { get; set; } = string.Empty;
+    /// <summary>Giá vé ghế này = giá suất × 1,5 khi đặt chỗ.</summary>
+    public bool IsVip { get; set; }
 }
 
 public class Showtime
@@ -91,7 +110,7 @@ public class Reservation
     public User User { get; set; } = null!;
     public int ShowtimeId { get; set; }
     public Showtime Showtime { get; set; } = null!;
-    public ReservationStatus Status { get; set; } = ReservationStatus.Pending;
+    public ReservationStatus Status { get; set; } = ReservationStatus.PendingApproval;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<Ticket> Tickets { get; set; } = new();
 }

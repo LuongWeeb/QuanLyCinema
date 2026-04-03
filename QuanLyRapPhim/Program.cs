@@ -71,9 +71,36 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<CinemaDbContext>();
     db.Database.EnsureCreated();
+    await db.Database.ExecuteSqlRawAsync("""
+        IF COL_LENGTH('dbo.Movies', 'PosterUrl') IS NULL
+          ALTER TABLE [dbo].[Movies] ADD [PosterUrl] NVARCHAR(500) NULL;
+        """);
+    await db.Database.ExecuteSqlRawAsync("""
+        IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'MovieRatings' AND schema_id = SCHEMA_ID('dbo'))
+        BEGIN
+          CREATE TABLE [dbo].[MovieRatings] (
+            [Id] int NOT NULL IDENTITY,
+            [UserId] int NOT NULL,
+            [MovieId] int NOT NULL,
+            [Stars] tinyint NOT NULL,
+            [CreatedAt] datetime2 NOT NULL,
+            CONSTRAINT [PK_MovieRatings] PRIMARY KEY ([Id]),
+            CONSTRAINT [FK_MovieRatings_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[Users] ([Id]) ON DELETE CASCADE,
+            CONSTRAINT [FK_MovieRatings_Movies_MovieId] FOREIGN KEY ([MovieId]) REFERENCES [dbo].[Movies] ([Id]) ON DELETE CASCADE
+          );
+          CREATE UNIQUE INDEX [IX_MovieRatings_UserId_MovieId] ON [dbo].[MovieRatings] ([UserId], [MovieId]);
+        END
+        """);
+    await db.Database.ExecuteSqlRawAsync("""
+        IF COL_LENGTH('dbo.Seats', 'IsVip') IS NULL
+          ALTER TABLE [dbo].[Seats] ADD [IsVip] bit NOT NULL CONSTRAINT [DF_Seats_IsVip] DEFAULT 0;
+        """);
     var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
     await authService.SeedDefaultUsersAsync();
 }
+
+var webRoot = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(Path.Combine(webRoot, "posters"));
 
 if (app.Environment.IsDevelopment())
 {
@@ -83,6 +110,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("FrontendDev");
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -13,6 +13,7 @@ public class CinemaDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<Movie> Movies => Set<Movie>();
+    public DbSet<MovieRating> MovieRatings => Set<MovieRating>();
     public DbSet<Showtime> Showtimes => Set<Showtime>();
     public DbSet<Auditorium> Auditoriums => Set<Auditorium>();
     public DbSet<Seat> Seats => Set<Seat>();
@@ -50,5 +51,15 @@ public class CinemaDbContext : DbContext
             .HasMany(x => x.Seats)
             .WithOne(x => x.Auditorium)
             .HasForeignKey(x => x.AuditoriumId);
+
+        modelBuilder.Entity<MovieRating>().HasIndex(x => new { x.UserId, x.MovieId }).IsUnique();
+        modelBuilder.Entity<MovieRating>()
+            .HasOne(x => x.User)
+            .WithMany(x => x.MovieRatings)
+            .HasForeignKey(x => x.UserId);
+        modelBuilder.Entity<MovieRating>()
+            .HasOne(x => x.Movie)
+            .WithMany(x => x.MovieRatings)
+            .HasForeignKey(x => x.MovieId);
     }
 }

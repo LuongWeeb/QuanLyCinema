@@ -72,3 +72,9 @@ export interface ApiErrorDetail {
   message: string
   code?: string
 }
+
+export interface CustomerLookup {
+  userId: number
+  username: string
+  fullName: string
+}

@@ -44,6 +44,14 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Đã tạo user mẫu: admin/staff/customer (mật khẩu 123456)." });
     }
 
+    [HttpGet("khach-hang-goi-y")]
+    [Authorize(Roles = "Staff,Admin")]
+    public async Task<IActionResult> SearchCustomers([FromQuery] string? q, [FromQuery] int take = 30)
+    {
+        var list = await _authService.SearchCustomersAsync(q, take);
+        return Ok(list);
+    }
+
     [HttpGet("nguoi-dung-vai-tro")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetUsersWithRoles([FromQuery] UserManagementQuery query)

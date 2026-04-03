@@ -1,9 +1,3 @@
-/*
-    DB_Migration_Auth_Role_UserRole.sql
-    Migration mềm: chuyển schema auth cũ (Users.Role) sang schema mới (Roles, UserRoles)
-    mà không reset database.
-*/
-
 USE [WebQuanLyRapPhim];
 GO
 
@@ -91,9 +85,6 @@ BEGIN
         FROM [dbo].[UserRoles] ur
         WHERE ur.[UserId] = m.UserId AND ur.[RoleId] = r.Id
     );
-
-    -- Giữ lại cột Role để rollback nếu cần.
-    -- Khi đã ổn định production, có thể DROP COLUMN [Role].
 END
 GO
 

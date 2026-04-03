@@ -6,9 +6,25 @@ interface UserDropdownProps {
   username: string
   role: string
   onLogout: () => void
+  /** Khách hàng: mở trang vé của tôi */
+  onMyTickets?: () => void
+  /** Quản trị: danh sách đơn chờ duyệt */
+  onPendingReservations?: () => void
+  /** Quản trị: mở giao diện đặt vé như khách (tại quầy) */
+  onCounterBooking?: () => void
+  /** Nhân viên đang ở giao diện quầy: quay lại dashboard */
+  onBackToAdmin?: () => void
 }
 
-export function UserDropdown({ username, role, onLogout }: UserDropdownProps) {
+export function UserDropdown({
+  username,
+  role,
+  onLogout,
+  onMyTickets,
+  onPendingReservations,
+  onCounterBooking,
+  onBackToAdmin,
+}: UserDropdownProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
 
@@ -29,6 +45,26 @@ export function UserDropdown({ username, role, onLogout }: UserDropdownProps) {
       onLogout()
       return
     }
+    if (action === 'my-tickets' && onMyTickets) {
+      onMyTickets()
+      setOpen(false)
+      return
+    }
+    if (action === 'pending-reservations' && onPendingReservations) {
+      onPendingReservations()
+      setOpen(false)
+      return
+    }
+    if (action === 'counter-booking' && onCounterBooking) {
+      onCounterBooking()
+      setOpen(false)
+      return
+    }
+    if (action === 'back-admin' && onBackToAdmin) {
+      onBackToAdmin()
+      setOpen(false)
+      return
+    }
     setOpen(false)
   }
 
@@ -47,6 +83,26 @@ export function UserDropdown({ username, role, onLogout }: UserDropdownProps) {
 
       {open ? (
         <div className="user-dropdown-panel">
+          {onBackToAdmin ? (
+            <button className="user-dd-value" onClick={() => handleAction('back-admin')}>
+              Về trang quản trị
+            </button>
+          ) : null}
+          {onPendingReservations ? (
+            <button className="user-dd-value" onClick={() => handleAction('pending-reservations')}>
+              Duyệt đơn đặt vé
+            </button>
+          ) : null}
+          {onCounterBooking ? (
+            <button className="user-dd-value" onClick={() => handleAction('counter-booking')}>
+              Đặt vé tại quầy
+            </button>
+          ) : null}
+          {onMyTickets ? (
+            <button className="user-dd-value" onClick={() => handleAction('my-tickets')}>
+              Vé của tôi
+            </button>
+          ) : null}
           <button className="user-dd-value" onClick={() => handleAction('profile')}>
             Hồ sơ công khai
           </button>

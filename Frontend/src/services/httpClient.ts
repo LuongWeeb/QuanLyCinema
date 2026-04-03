@@ -26,6 +26,9 @@ httpClient.interceptors.response.use(
 )
 
 httpClient.interceptors.request.use((config) => {
+  if (config.data instanceof FormData && config.headers) {
+    delete (config.headers as Record<string, unknown>)['Content-Type']
+  }
   const token = localStorage.getItem('token')
   if (token) {
     config.headers = config.headers ?? {}

@@ -158,7 +158,8 @@ body {
 }
 
 .topbar-search-input {
-  max-width: 210px;
+  max-width: 240px;
+  width: 100%;
   background-color: #f5f5f5;
   color: #242424;
   padding: 0.15rem 0.5rem 0.15rem 2rem;
@@ -169,6 +170,31 @@ body {
   line-height: 1.15;
   box-shadow: 0 10px 20px -18px;
   transition: all 0.2s ease;
+}
+
+.topbar-search-input--clear {
+  padding-right: 2.25rem;
+}
+
+.topbar-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.topbar-search-clear:hover {
+  color: rgba(0, 0, 0, 0.55);
 }
 
 .topbar-search-input:focus {
@@ -229,6 +255,31 @@ body {
   margin-bottom: 14px;
   border-left: 3px solid rgba(120, 154, 255, 0.6);
   padding-left: 10px;
+}
+
+/* Trang chủ — tối đa 5 phim / hàng, tự xuống dòng */
+.movie-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .movie-grid-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .movie-grid-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .movie-grid-5 {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .hero-slide {
@@ -606,4 +657,110 @@ body {
 .social-iso-pro:hover span:nth-child(3) {
   opacity: 0.6;
   transform: translate(10px, -10px);
+}
+
+/* Đặt vé — lưới ghế */
+.booking-seat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+  max-width: calc(20 * 44px + 19 * 8px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.booking-seat {
+  min-width: 44px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(127, 154, 255, 0.45);
+  background: rgba(20, 32, 72, 0.85);
+  color: #e6edff;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.booking-seat:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(127, 154, 255, 0.85);
+}
+
+.booking-seat.selected {
+  background: rgba(79, 124, 255, 0.45);
+  border-color: #4f7cff;
+  color: #fff;
+}
+
+.booking-seat.sold {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: rgba(40, 20, 20, 0.5);
+  border-color: rgba(255, 120, 120, 0.35);
+}
+
+.booking-seat.vip:not(.sold):not(:disabled) {
+  background: linear-gradient(145deg, rgba(90, 70, 20, 0.95), rgba(50, 40, 10, 0.9));
+  border-color: rgba(255, 214, 102, 0.75);
+  color: #ffe58f;
+  box-shadow: 0 0 0 1px rgba(255, 200, 80, 0.2);
+}
+
+.booking-seat.vip.selected {
+  background: linear-gradient(145deg, rgba(180, 140, 40, 0.85), rgba(120, 90, 20, 0.9));
+  border-color: #ffd666;
+  color: #fff;
+}
+
+/* Admin — lưới ghế phòng */
+.admin-seat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: calc(20 * 44px + 19 * 8px);
+  margin-top: 8px;
+}
+
+.admin-seat-cell {
+  width: 44px;
+  min-height: 40px;
+  padding: 4px 2px;
+  border-radius: 6px;
+  border: 1px solid rgba(127, 154, 255, 0.4);
+  background: rgba(20, 32, 72, 0.75);
+  color: #e6edff;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.admin-seat-cell:hover {
+  transform: translateY(-1px);
+  border-color: rgba(160, 185, 255, 0.75);
+}
+
+.admin-seat-cell.vip {
+  background: linear-gradient(145deg, rgba(90, 70, 20, 0.95), rgba(45, 35, 10, 0.9));
+  border-color: rgba(255, 214, 102, 0.7);
+  color: #ffe58f;
+}
+
+.admin-seat-cell.selected {
+  outline: 2px solid #4f7cff;
+  outline-offset: 1px;
+  border-color: #4f7cff;
+  box-shadow: 0 0 12px rgba(79, 124, 255, 0.35);
+}
+
+.admin-seat-cell.vip.selected {
+  outline-color: #ffd666;
+  border-color: #ffd666;
 }
