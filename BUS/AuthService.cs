@@ -24,6 +24,8 @@ public interface IAuthService
     Task<(bool Success, string Message)> DeleteUserAsync(int userId, int currentUserId);
     Task<(bool Success, string Message)> AssignRoleAsync(AssignUserRoleRequest request);
     Task<(bool Success, string Message)> RemoveRoleAsync(AssignUserRoleRequest request);
+    Task<(bool Success, string Message)> ChangePasswordAsync(int userId, ChangePasswordRequest request);
+    Task<(bool Success, string Message)> UpdateProfileAsync(int userId, UpdateProfileRequest request);
 }
 
 public class AuthService : IAuthService
@@ -128,6 +130,10 @@ END
 IF COL_LENGTH('dbo.Users', 'IsLocked') IS NULL
 BEGIN
     ALTER TABLE [dbo].[Users] ADD [IsLocked] BIT NOT NULL CONSTRAINT [DF_Users_IsLocked] DEFAULT (0);
+END
+IF COL_LENGTH('dbo.Users', 'AvatarUrl') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[Users] ADD [AvatarUrl] NVARCHAR(MAX) NULL;
 END";
         var sqlLegacyRoleDefault = @"
 IF COL_LENGTH('dbo.Users', 'Role') IS NOT NULL
@@ -231,7 +237,9 @@ END";
         return new LoginResponse(
             new JwtSecurityTokenHandler().WriteToken(token),
             user.Username,
-            roles.First());
+            roles.First(),
+            user.FullName,
+            user.AvatarUrl);
     }
 
     public async Task<(bool Success, string Message)> RegisterAsync(RegisterRequest request)
@@ -554,6 +562,34 @@ END";
         _db.UserRoles.Remove(userRole);
         await _db.SaveChangesAsync();
         return (true, "Gỡ vai trò thành công.");
+    }
+
+    public async Task<(bool Success, string Message)> ChangePasswordAsync(int userId, ChangePasswordRequest request)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+        if (user is null) return (false, "Không tìm thấy người dùng.");
+
+        var oldHash = Hash(request.OldPassword);
+        if (user.PasswordHash != oldHash) return (false, "Mật khẩu cũ không chính xác.");
+
+        user.PasswordHash = Hash(request.NewPassword);
+        await _db.SaveChangesAsync();
+        return (true, "Đổi mật khẩu thành công.");
+    }
+
+    public async Task<(bool Success, string Message)> UpdateProfileAsync(int userId, UpdateProfileRequest request)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+        if (user is null) return (false, "Không tìm thấy người dùng.");
+
+        if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            user.FullName = request.FullName.Trim();
+        }
+        user.AvatarUrl = request.AvatarUrl;
+
+        await _db.SaveChangesAsync();
+        return (true, "Cập nhật hồ sơ thành công.");
     }
 
     private static string Hash(string input)

@@ -1,4 +1,4 @@
-import type { Movie, MovieDetail } from '../types/movie'
+import type { Movie, MovieDetail, TopRevenueMovie } from '../types/movie'
 import { httpClient } from './httpClient'
 
 export interface MoviePayload {
@@ -59,4 +59,11 @@ export async function updateMovie(id: number, payload: MoviePayload): Promise<Mo
 export async function deleteMovie(id: number): Promise<string> {
   const { data } = await httpClient.delete<{ message: string }>(`/api/phim/${id}`)
   return data.message
+}
+
+export async function getTopRevenue(limit: number = 10): Promise<TopRevenueMovie[]> {
+  const { data } = await httpClient.get<TopRevenueMovie[]>('/api/phim/top-doanh-thu', {
+    params: { soLuong: limit }
+  })
+  return data
 }

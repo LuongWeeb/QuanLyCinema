@@ -30,11 +30,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { TopbarSearch } from '../components/common/TopbarSearch'
 import { UserDropdown } from '../components/common/UserDropdown'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
-import { listMovies } from '../services/movieService'
+import { getTopRevenue, listMovies } from '../services/movieService'
 import type { LoginResponse } from '../types/auth'
-import type { Movie } from '../types/movie'
+import type { Movie, TopRevenueMovie } from '../types/movie'
 import { mapApiError } from '../utils/error'
 import { resolveUploadedPosterUrl } from '../utils/moviePoster'
+import { ProfileModal } from '../components/profile/ProfileModal'
+import { useRecoilState } from 'recoil'
+import { themeState } from '../state/recoil/theme'
 
 const { Header, Content, Footer } = Layout
 
@@ -153,11 +156,18 @@ export function CustomerHomePage({
   const [searchInput, setSearchInput] = useState(() => searchParams.get('q') ?? '')
   const debouncedSearch = useDebouncedValue(searchInput, 380)
   const [movies, setMovies] = useState<Movie[]>([])
+  const [topRevenueMovies, setTopRevenueMovies] = useState<TopRevenueMovie[]>([])
   const [loading, setLoading] = useState(true)
   const [activeMenu, setActiveMenu] = useState('')
   const [api, contextHolder] = message.useMessage()
   const scrollNowRef = useRef<HTMLDivElement>(null)
   const scrollUpcomingRef = useRef<HTMLDivElement>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [theme, setTheme] = useRecoilState(themeState)
+
+  function toggleTheme() {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }
 
   function scrollSection(ref: React.RefObject<HTMLDivElement | null>, dir: 'left' | 'right') {
     if (ref.current) {
@@ -184,8 +194,12 @@ export function CustomerHomePage({
       setLoading(true)
       try {
         const kw = debouncedSearch.trim()
-        const data = await listMovies(kw ? { keyword: kw } : undefined)
+        const [data, topData] = await Promise.all([
+          listMovies(kw ? { keyword: kw } : undefined),
+          getTopRevenue(7)
+        ])
         setMovies(data)
+        setTopRevenueMovies(topData)
       } catch (error) {
         const detail = mapApiError(error)
         api.error(detail.message)
@@ -208,17 +222,11 @@ export function CustomerHomePage({
     ...movie,
     releaseText: `Khởi chiếu sau ${idx + 3} ngày`,
   }))
-  const topRevenueMovies = [...movies]
-    .sort((a, b) => b.rating - a.rating)
-    .slice(0, 7)
-    .map((movie, idx) => ({
-      ...movie,
-      revenue: `${(2.1 - idx * 0.25).toFixed(2)} tỷ`,
-    }))
 
   return (
     <Layout className="customer-layout cinematic-theme">
       {contextHolder}
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
 
       {/* ═══ STAFF COUNTER KIOSK MODE ═══ */}
       {staffCounterMode ? (
@@ -248,6 +256,8 @@ export function CustomerHomePage({
               role={currentUser.role}
               onLogout={onLogout}
               onBackToAdmin={onBackToAdmin}
+              onOpenProfile={() => setProfileOpen(true)}
+              onToggleTheme={toggleTheme}
             />
           </Header>
 
@@ -358,6 +368,8 @@ export function CustomerHomePage({
           onLogout={onLogout}
           onMyTickets={staffCounterMode ? undefined : () => navigate('/ve-cua-toi')}
           onBackToAdmin={staffCounterMode && onBackToAdmin ? onBackToAdmin : undefined}
+          onOpenProfile={() => setProfileOpen(true)}
+          onToggleTheme={toggleTheme}
         />
       </Header>
 
@@ -555,7 +567,7 @@ export function CustomerHomePage({
 
                   {/* Revenue */}
                   <span className="revenue-col">
-                    <span className="ranking-revenue">{movie.revenue}</span>
+                    <span className="ranking-revenue">{movie.tongDoanhThu.toLocaleString('vi-VN')} đ</span>
                   </span>
                 </div>
               ))}

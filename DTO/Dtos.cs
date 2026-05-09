@@ -1,7 +1,9 @@
 namespace DTO;
 
 public record LoginRequest(string Username, string Password);
-public record LoginResponse(string AccessToken, string Username, string Role);
+public record LoginResponse(string AccessToken, string Username, string Role, string FullName, string? AvatarUrl);
+public record ChangePasswordRequest(string OldPassword, string NewPassword);
+public record UpdateProfileRequest(string FullName, string? AvatarUrl);
 public record RegisterRequest(string Username, string Password, string FullName);
 public record AssignUserRoleRequest(int UserId, string RoleName);
 public record UserRoleItem(int RoleId, string RoleName);

@@ -14,6 +14,8 @@ interface UserDropdownProps {
   onCounterBooking?: () => void
   /** Nhân viên đang ở giao diện quầy: quay lại dashboard */
   onBackToAdmin?: () => void
+  onOpenProfile?: () => void
+  onToggleTheme?: () => void
 }
 
 export function UserDropdown({
@@ -24,6 +26,8 @@ export function UserDropdown({
   onPendingReservations,
   onCounterBooking,
   onBackToAdmin,
+  onOpenProfile,
+  onToggleTheme,
 }: UserDropdownProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -62,6 +66,16 @@ export function UserDropdown({
     }
     if (action === 'back-admin' && onBackToAdmin) {
       onBackToAdmin()
+      setOpen(false)
+      return
+    }
+    if ((action === 'profile' || action === 'account') && onOpenProfile) {
+      onOpenProfile()
+      setOpen(false)
+      return
+    }
+    if (action === 'appearance' && onToggleTheme) {
+      onToggleTheme()
       setOpen(false)
       return
     }

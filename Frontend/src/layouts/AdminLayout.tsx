@@ -11,6 +11,11 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { UserDropdown } from '../components/common/UserDropdown'
 import type { LoginResponse } from '../types/auth'
 
+import { ProfileModal } from '../components/profile/ProfileModal'
+import { useRecoilState } from 'recoil'
+import { themeState } from '../state/recoil/theme'
+import { useState } from 'react'
+
 const { Sider, Header, Content } = Layout
 
 interface AdminLayoutProps {
@@ -22,6 +27,12 @@ export function AdminLayout({ currentUser, onLogout }: AdminLayoutProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const isAdmin = currentUser.role.toLowerCase() === 'admin'
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [theme, setTheme] = useRecoilState(themeState)
+
+  function toggleTheme() {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }
 
   const selectedKey =
     location.pathname === '/' || location.pathname === ''
@@ -74,6 +85,7 @@ export function AdminLayout({ currentUser, onLogout }: AdminLayoutProps) {
 
   return (
     <div className="admin-cinematic-theme">
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       {/* Background Orbs */}
       <div className="ambient-orbs">
         <div className="orb blue-orb"></div>
@@ -112,6 +124,8 @@ export function AdminLayout({ currentUser, onLogout }: AdminLayoutProps) {
               onLogout={onLogout}
               onPendingReservations={() => navigate('/don-cho-duyet')}
               onCounterBooking={() => navigate('/ban-ve')}
+              onOpenProfile={() => setProfileOpen(true)}
+              onToggleTheme={toggleTheme}
             />
           </Header>
           <Content className="dashboard-content">

@@ -13,6 +13,18 @@ export interface LoginResponse {
   accessToken: string
   username: string
   role: string
+  fullName: string
+  avatarUrl?: string
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string
+  newPassword: string
+}
+
+export interface UpdateProfileRequest {
+  fullName: string
+  avatarUrl?: string
 }
 
 export interface UserRoleItem {

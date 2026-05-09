@@ -15,16 +15,15 @@ httpClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status
-    // Token hết hạn / không hợp lệ -> xóa phiên để user login lại.
+
     if (status === 401) {
       try {
         localStorage.removeItem('token')
         localStorage.removeItem('currentUser')
       } catch {
-        // ignore
+
       }
-      // Không reload toàn trang để tránh loop khi đang login/refresh dữ liệu.
-      // App sẽ tự render lại khi `currentUser` bị xoá.
+
     }
     console.error('[HTTP_ERROR]', {
       url: error?.config?.url,
@@ -42,8 +41,7 @@ httpClient.interceptors.request.use((config) => {
     delete (config.headers as Record<string, unknown>)['Content-Type']
   }
   let token = localStorage.getItem('token')
-  // Fallback: một số luồng đăng nhập (ví dụ hydrate qua Recoil) có thể chỉ lưu `currentUser`
-  // mà chưa set key `token`. Khi đó, lấy `accessToken` từ `currentUser` để vẫn gửi Authorization.
+
   if (!token) {
     try {
       const raw = localStorage.getItem('currentUser')
@@ -55,11 +53,11 @@ httpClient.interceptors.request.use((config) => {
         }
       }
     } catch {
-      // Ignore JSON parse errors and just send request without token.
+
     }
   }
   if (token) {
-    // axios v1 có thể dùng AxiosHeaders (có method .set), nên không nên chỉ gán property.
+
     config.headers = config.headers ?? {}
     const headersAny = config.headers as any
     if (typeof headersAny.set === 'function') {

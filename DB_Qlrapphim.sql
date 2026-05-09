@@ -13,7 +13,8 @@ CREATE TABLE [dbo].[Users]
     [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     [Username] NVARCHAR(450) NOT NULL,
     [PasswordHash] NVARCHAR(MAX) NOT NULL,
-    [FullName] NVARCHAR(MAX) NOT NULL
+    [FullName] NVARCHAR(MAX) NOT NULL,
+    [AvatarUrl] NVARCHAR(MAX) NULL
 );
 GO
 

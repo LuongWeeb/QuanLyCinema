@@ -11,8 +11,7 @@ function readStoredUser(): LoginResponse | null {
   try {
     const u = JSON.parse(raw) as LoginResponse
     if (u?.accessToken) {
-      // `httpClient` reads token from localStorage. When we hydrate auth state from
-      // `currentUser`, ensure the `token` key exists too.
+
       localStorage.setItem(STORAGE_TOKEN, u.accessToken)
       return u
     }

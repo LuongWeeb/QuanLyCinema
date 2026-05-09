@@ -10,6 +10,8 @@ import type {
   UpdateUserStatusRequest,
   UpdateUserRequest,
   UserManagementQuery,
+  ChangePasswordRequest,
+  UpdateProfileRequest,
 } from '../types/auth'
 
 export async function searchCustomers(q?: string, take = 30): Promise<CustomerLookup[]> {
@@ -80,5 +82,15 @@ export async function updateUserStatus(payload: UpdateUserStatusRequest): Promis
     '/api/xac-thuc/quan-ly-nguoi-dung/cap-nhat-trang-thai',
     payload,
   )
+  return data.message
+}
+
+export async function changePassword(payload: ChangePasswordRequest): Promise<string> {
+  const { data } = await httpClient.put<{ message: string }>('/api/xac-thuc/doi-mat-khau', payload)
+  return data.message
+}
+
+export async function updateProfile(payload: UpdateProfileRequest): Promise<string> {
+  const { data } = await httpClient.put<{ message: string }>('/api/xac-thuc/cap-nhat-ho-so', payload)
   return data.message
 }

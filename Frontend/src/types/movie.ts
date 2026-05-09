@@ -12,3 +12,7 @@ export interface MovieDetail extends Movie {
   userRatingCount: number
   myStars: number | null
 }
+
+export interface TopRevenueMovie extends Movie {
+  tongDoanhThu: number
+}

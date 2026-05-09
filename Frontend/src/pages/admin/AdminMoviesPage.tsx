@@ -48,7 +48,7 @@ export function AdminMoviesPage() {
       'Tâm linh',
       'Dạng tài liệu',
       'Chính kịch',
-      // thêm một vài alias phổ biến để map nhanh nếu dữ liệu DB đang dùng tiếng Anh
+
       'Adventure',
       'Comedy',
       'Drama',

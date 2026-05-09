@@ -109,4 +109,22 @@ public class AuthController : ControllerBase
         var result = await _authService.RemoveRoleAsync(request);
         return result.Success ? Ok(new { message = result.Message }) : BadRequest(new { message = result.Message });
     }
+
+    [HttpPut("doi-mat-khau")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var currentUserId = User.GetUserId();
+        var result = await _authService.ChangePasswordAsync(currentUserId, request);
+        return result.Success ? Ok(new { message = result.Message }) : BadRequest(new { message = result.Message });
+    }
+
+    [HttpPut("cap-nhat-ho-so")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var currentUserId = User.GetUserId();
+        var result = await _authService.UpdateProfileAsync(currentUserId, request);
+        return result.Success ? Ok(new { message = result.Message }) : BadRequest(new { message = result.Message });
+    }
 }

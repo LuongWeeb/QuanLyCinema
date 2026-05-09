@@ -2719,3 +2719,29 @@ body {
   margin-top: auto;
   border-radius: 8px;
 }
+
+/* ============================================== */
+/* THEME OVERRIDES (LIGHT MODE) */
+/* ============================================== */
+body.theme-light {
+  filter: invert(1) hue-rotate(180deg);
+  background: #fdfdfd;
+}
+
+body.theme-light img,
+body.theme-light video,
+body.theme-light .movie-poster,
+body.theme-light .hero-slide-bg,
+body.theme-light .ranking-poster,
+body.theme-light .kiosk-poster,
+body.theme-light .ant-avatar {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+body.theme-light .ant-modal-content,
+body.theme-light .ant-modal-header {
+  background: #fff;
+}
+body.theme-light .ant-modal-title {
+  color: #000;
+}

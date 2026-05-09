@@ -123,7 +123,12 @@ export function AdminShowtimesPage() {
             title: 'Giờ chiếu',
             render: (_, r) => dayjs(r.startTime).format('DD/MM/YYYY HH:mm'),
           },
-          { title: 'Giá vé', dataIndex: 'price', width: 100 },
+          { 
+            title: 'Giá vé', 
+            dataIndex: 'price', 
+            width: 100,
+            render: (v: number) => `${v.toLocaleString('vi-VN')} đ`,
+          },
           {
             title: 'Xóa',
             key: 'd',
@@ -155,7 +160,13 @@ export function AdminShowtimesPage() {
             <DatePicker showTime style={{ width: '100%' }} format="DD/MM/YYYY HH:mm" />
           </Form.Item>
           <Form.Item name="price" label="Giá vé (1 ghế)" rules={[{ required: true }]}>
-            <InputNumber min={0} style={{ width: '100%' }} />
+            <InputNumber<number> 
+              min={0} 
+              step={10000}
+              style={{ width: '100%' }} 
+              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+              parser={(value) => Number(value!.replace(/\./g, ''))}
+            />
           </Form.Item>
           <Button type="primary" htmlType="submit" loading={submitting} block>
             Tạo suất
